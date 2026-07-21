@@ -2,10 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BOOKS, bookBySlug, neighbors, refFor } from "@/lib/bible-books";
 import { fetchPassage } from "@/lib/esv";
-import { getBookmarks } from "@/lib/bible";
+import { getBookmarks, getChapterNotes } from "@/lib/bible";
 import { saveBookmarkAction, removeBookmarkAction } from "@/app/dashboard/bible/actions";
 import { EsvStyles, ESV_COPYRIGHT } from "../../esv-styles";
 import { ChapterPicker } from "../../chapter-picker";
+import { ReaderContent } from "./reader-content";
 
 export const dynamic = "force-dynamic";
 
@@ -46,13 +47,26 @@ export default async function Reader({
   }
 
   const ref = refFor(book, chapter);
-  const [passage, bookmarks] = await Promise.all([fetchPassage(ref), getBookmarks()]);
+  const [passage, bookmarks, notes] = await Promise.all([
+    fetchPassage(ref),
+    getBookmarks(),
+    getChapterNotes(ref),
+  ]);
   const saved = bookmarks.some((b) => b.ref === ref);
   const { prev, next } = neighbors(slug, chapter);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-white font-sans dark:bg-black">
-      <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-black/[.06] bg-white/90 px-2 py-2 backdrop-blur dark:border-white/[.1] dark:bg-black/90">
+    <div
+      className="reader-shell flex min-h-dvh flex-col font-sans"
+      style={{ background: "var(--reader-bg)", color: "var(--reader-fg)" }}
+    >
+      <header
+        className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b px-2 py-2"
+        style={{
+          background: "var(--reader-surface)",
+          borderColor: "var(--reader-border)",
+        }}
+      >
         <Link
           href="/dashboard"
           aria-label="Exit reader"
@@ -80,21 +94,34 @@ export default async function Reader({
 
       <main className="mx-auto w-full max-w-2xl flex-1 px-5 py-8 sm:px-8 sm:py-10">
         <EsvStyles />
-        <h1 className="mb-6 text-2xl font-semibold tracking-tight text-black dark:text-zinc-50">
+        <h1
+          className="mb-6 text-2xl font-semibold tracking-tight"
+          style={{ color: "var(--reader-fg)" }}
+        >
           {ref}
         </h1>
         {passage.ok ? (
-          <div className="esv" dangerouslySetInnerHTML={{ __html: passage.html }} />
+          <ReaderContent
+            refLabel={ref}
+            html={passage.html}
+            initialHighlights={notes.highlights}
+            initialReflection={notes.reflection}
+          />
         ) : (
           <p className="text-sm text-rose-600 dark:text-rose-400">{passage.error}</p>
         )}
 
-        <nav className="mt-10 flex items-center justify-between gap-3 border-t border-black/[.06] pt-6 dark:border-white/[.1]">
+        <nav
+          className="mt-10 flex items-center justify-between gap-3 border-t pt-6"
+          style={{ borderColor: "var(--reader-border)" }}
+        >
           {prev ? <NavLink href={`/bible/${prev.slug}/${prev.chapter}`}>← {prev.label}</NavLink> : <span />}
           {next ? <NavLink href={`/bible/${next.slug}/${next.chapter}`}>{next.label} →</NavLink> : <span />}
         </nav>
 
-        <p className="mt-8 text-xs leading-relaxed text-zinc-400">{ESV_COPYRIGHT}</p>
+        <p className="mt-8 text-xs leading-relaxed" style={{ color: "var(--reader-muted)" }}>
+          {ESV_COPYRIGHT}
+        </p>
       </main>
     </div>
   );

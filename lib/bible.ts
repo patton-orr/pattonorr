@@ -29,6 +29,86 @@ export async function removeBookmark(ref: string) {
   );
 }
 
+// --- Notes & highlights (per chapter) ---
+//
+// Two flavors, both scoped to a passage reference (e.g. "Psalm 2"):
+//   1. Highlights — a colored span of text with an optional attached note.
+//      Anchored by character offsets into the chapter's text. ESV content for a
+//      ref is immutable and cached, so those offsets stay valid across reloads
+//      and across devices.
+//   2. Reflection — one free-form reflection on the passage as a whole.
+//
+// Stored one row per chapter (key `bible.notes:<ref>`) so a write only touches
+// that chapter, and it stays plain JSON — portable, no new table.
+
+export type Highlight = {
+  id: string;
+  start: number; // char offset into the chapter text (inclusive)
+  end: number; // char offset (exclusive)
+  quote: string; // the highlighted text, for the notes list + as a fallback label
+  color: string; // one of HIGHLIGHT_COLORS
+  note: string; // "" for a plain highlight
+  createdAt: string;
+};
+
+export type ChapterNotes = { highlights: Highlight[]; reflection: string };
+
+export const HIGHLIGHT_COLORS = ["yellow", "green", "blue", "pink"] as const;
+export type HighlightColor = (typeof HIGHLIGHT_COLORS)[number];
+
+const EMPTY_NOTES: ChapterNotes = { highlights: [], reflection: "" };
+const notesKey = (ref: string) => `bible.notes:${ref}`;
+
+export async function getChapterNotes(ref: string): Promise<ChapterNotes> {
+  const n = await getSetting<ChapterNotes>(notesKey(ref), EMPTY_NOTES);
+  return {
+    highlights: Array.isArray(n.highlights) ? n.highlights : [],
+    reflection: typeof n.reflection === "string" ? n.reflection : "",
+  };
+}
+
+async function mutateNotes(
+  ref: string,
+  fn: (n: ChapterNotes) => ChapterNotes,
+) {
+  const current = await getChapterNotes(ref);
+  await setSetting(notesKey(ref), fn(current));
+}
+
+export async function addHighlight(ref: string, h: Highlight) {
+  await mutateNotes(ref, (n) => ({
+    ...n,
+    // idempotent on id, and keep them ordered by position for a stable list
+    highlights: [...n.highlights.filter((x) => x.id !== h.id), h].sort(
+      (a, b) => a.start - b.start,
+    ),
+  }));
+}
+
+export async function updateHighlight(
+  ref: string,
+  id: string,
+  patch: Partial<Pick<Highlight, "note" | "color">>,
+) {
+  await mutateNotes(ref, (n) => ({
+    ...n,
+    highlights: n.highlights.map((h) =>
+      h.id === id ? { ...h, ...patch } : h,
+    ),
+  }));
+}
+
+export async function removeHighlight(ref: string, id: string) {
+  await mutateNotes(ref, (n) => ({
+    ...n,
+    highlights: n.highlights.filter((h) => h.id !== id),
+  }));
+}
+
+export async function setReflection(ref: string, text: string) {
+  await mutateNotes(ref, (n) => ({ ...n, reflection: text }));
+}
+
 // --- Reading plans ---
 
 export type Plan = {
