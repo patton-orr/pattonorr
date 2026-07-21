@@ -96,7 +96,7 @@ export default async function Reader({
         <EsvStyles />
         <h1
           className="mb-6 text-2xl font-semibold tracking-tight"
-          style={{ color: "var(--reader-fg)" }}
+          style={{ color: "var(--reader-fg)", fontFamily: "var(--reader-serif)" }}
         >
           {ref}
         </h1>

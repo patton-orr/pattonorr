@@ -19,6 +19,12 @@ export function EsvStyles() {
         --hl-green: rgba(150,198,110,.40);
         --hl-blue: rgba(120,170,224,.38);
         --hl-pink: rgba(233,138,166,.40);
+        /* Scripture reads in a warm old-style serif. On Apple devices this is
+           Iowan Old Style (the face Apple Books uses for immersive reading);
+           Palatino Linotype on Windows; Georgia as a broad fallback. Named
+           faces (not ui-serif) so desktop Chrome can't resolve to Times. The
+           notes/UI stay on --font-geist-sans. */
+        --reader-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Charter, Georgia, serif;
       }
       @media (prefers-color-scheme: dark) {
         .reader-shell {
@@ -36,7 +42,9 @@ export function EsvStyles() {
         }
       }
 
-      .esv { line-height: 1.85; color: var(--reader-fg); font-size: 1.05rem; }
+      .esv {
+        font-family: var(--reader-serif);
+        line-height: 1.85; color: var(--reader-fg); font-size: 1.05rem; }
       .esv .extra_text, .esv .copyright, .esv .footnotes { display: none; }
       .esv ::selection { background: rgba(156,107,61,.22); }
       .esv h3 {
@@ -45,7 +53,10 @@ export function EsvStyles() {
       .esv p { margin: 1rem 0; }
       .esv .verse-num, .esv .chapter-num {
         font-size: 0.62em; font-weight: 700; vertical-align: super; line-height: 0;
-        color: var(--reader-muted); margin: 0 0.18em 0 0.05em; }
+        color: var(--reader-muted); margin: 0 0.18em 0 0.05em;
+        /* Iowan/Palatino default to old-style figures; force lining figures so
+           the superscript verse numbers stay even. */
+        font-variant-numeric: lining-nums; font-feature-settings: "lnum" 1; }
       .esv .block-indent { margin-left: 1.5rem; }
       .esv a { color: inherit; text-decoration: none; }
 
