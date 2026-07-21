@@ -114,10 +114,24 @@ export function ReaderContent({
     [...initialHighlights].sort((a, b) => a.start - b.start),
   );
   const [toolbar, setToolbar] = useState<Toolbar | null>(null);
-  const [editing, setEditing] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | null>(null); // mobile modal
+  const [active, setActive] = useState<string | null>(null); // desktop margin card
+  const [isWide, setIsWide] = useState(false); // room for the comment rail
+  const [cardTops, setCardTops] = useState<Record<string, number>>({});
   const [, startTransition] = useTransition();
 
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const editingHl = highlights.find((h) => h.id === editing) ?? null;
+
+  // Comments (Word-style) live in the right margin on wide screens, anchored to
+  // their highlight; on narrow screens there's no room, so a tap on the
+  // highlight opens the note instead. A card shows for every highlight that has
+  // a note, plus whichever one is being edited (so a plain highlight can get a
+  // first note).
+  const cards = highlights
+    .filter((h) => h.note.trim() !== "" || h.id === active)
+    .sort((a, b) => a.start - b.start);
 
   // Inject the passage and paint highlights. The container is an empty div in
   // JSX (React manages nothing inside it), so a re-render can never wipe the
@@ -209,7 +223,7 @@ export function ReaderContent({
       void addHighlightAction(refLabel, hl);
     });
     clearSelection();
-    if (openNote) setEditing(hl.id);
+    if (openNote) openHighlight(hl.id);
   }
 
   function commitNote(id: string, note: string) {
@@ -239,7 +253,9 @@ export function ReaderContent({
   }
 
   function openHighlight(id: string) {
-    setEditing(id);
+    // Wide screens open the margin comment card; narrow screens open the modal.
+    if (isWide) setActive(id);
+    else setEditing(id);
     requestAnimationFrame(() => {
       containerRef.current
         ?.querySelector(`mark[data-hl-id="${id}"]`)
@@ -252,6 +268,8 @@ export function ReaderContent({
     if (mark) {
       e.preventDefault();
       openHighlight((mark as HTMLElement).dataset.hlId!);
+    } else if (active) {
+      setActive(null); // click elsewhere in the passage dismisses the open card
     }
   }
 
@@ -277,6 +295,62 @@ export function ReaderContent({
     if (!reflSaved) saveReflection(reflection);
   }
 
+  // Track whether there's room for the margin comment rail.
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1280px)");
+    const on = () => setIsWide(mq.matches);
+    on();
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+
+  // Position each comment card at its highlight's vertical anchor, pushing cards
+  // down so they never overlap (Google-Docs style). Called from rAF / observers,
+  // not directly in an effect body.
+  function relayout() {
+    const wrapper = wrapperRef.current;
+    if (!wrapper || !isWide) return;
+    const wrapTop = wrapper.getBoundingClientRect().top;
+    const gap = 12;
+    let prevBottom = -Infinity;
+    const tops: Record<string, number> = {};
+    for (const h of cards) {
+      const mark = wrapper.querySelector<HTMLElement>(
+        `mark[data-hl-id="${h.id}"]`,
+      );
+      const card = cardRefs.current.get(h.id);
+      if (!mark || !card) continue;
+      const anchorY = mark.getBoundingClientRect().top - wrapTop;
+      const top = Math.max(anchorY, prevBottom + gap);
+      tops[h.id] = top;
+      prevBottom = top + card.offsetHeight;
+    }
+    setCardTops(tops);
+  }
+
+  useEffect(() => {
+    if (!isWide) return;
+    const raf = requestAnimationFrame(relayout);
+    const wrapper = wrapperRef.current;
+    const ro = new ResizeObserver(() => relayout());
+    if (wrapper) ro.observe(wrapper);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [html, highlights, active, isWide]);
+
+  // Escape closes an open margin card.
+  useEffect(() => {
+    if (!active) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setActive(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [active]);
+
   const clampedX =
     typeof window !== "undefined" && toolbar
       ? Math.min(Math.max(toolbar.x, 96), window.innerWidth - 96)
@@ -284,8 +358,36 @@ export function ReaderContent({
 
   return (
     <>
-      {/* Empty container — the effect above owns its innerHTML + marks. */}
-      <div ref={containerRef} className="esv" onClick={onContainerClick} />
+      <div ref={wrapperRef} className="relative">
+        {/* Empty container — the effect above owns its innerHTML + marks. */}
+        <div ref={containerRef} className="esv" onClick={onContainerClick} />
+
+        {/* Word-style comment rail — wide screens only, in the right margin */}
+        {isWide && cards.length > 0 && (
+          <div className="pointer-events-none absolute top-0 left-full ml-6 hidden w-64 xl:block">
+            {cards.map((h) => (
+              <div
+                key={h.id}
+                ref={(el) => {
+                  if (el) cardRefs.current.set(h.id, el);
+                  else cardRefs.current.delete(h.id);
+                }}
+                className="pointer-events-auto absolute right-0 left-0 transition-[top] duration-200 ease-out"
+                style={{ top: cardTops[h.id] ?? 0 }}
+              >
+                <CommentCard
+                  hl={h}
+                  active={active === h.id}
+                  onActivate={() => setActive(h.id)}
+                  onCommit={(note) => commitNote(h.id, note)}
+                  onColor={(c) => changeColor(h.id, c)}
+                  onDelete={() => deleteHighlight(h.id)}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Inline notes & reflection */}
       <section
@@ -324,61 +426,15 @@ export function ReaderContent({
           }}
         />
 
-        <div className="mt-6">
-          <h3
-            className="mb-2 text-xs font-medium"
+        {highlights.length === 0 && (
+          <p
+            className="mt-4 text-[0.85rem] leading-relaxed"
             style={{ color: "var(--reader-muted)" }}
           >
-            Highlights &amp; notes
-          </h3>
-          {highlights.length > 0 ? (
-            <ul className="flex flex-col gap-2">
-              {highlights.map((h) => (
-                <li key={h.id}>
-                  <button
-                    type="button"
-                    onClick={() => openHighlight(h.id)}
-                    className="flex w-full gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:brightness-[0.98]"
-                    style={{ background: "var(--reader-surface)" }}
-                  >
-                    <span
-                      aria-hidden
-                      className="mt-1 h-3 w-3 shrink-0 rounded-full"
-                      style={{ background: `var(--hl-${h.color})` }}
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span
-                        className="block text-[0.9rem] leading-snug"
-                        style={{ color: "var(--reader-fg)" }}
-                      >
-                        “{h.quote}”
-                      </span>
-                      <span
-                        className="mt-0.5 block text-[0.85rem] leading-snug"
-                        style={{
-                          color: h.note
-                            ? "var(--reader-fg)"
-                            : "var(--reader-muted)",
-                          opacity: h.note ? 0.85 : 1,
-                        }}
-                      >
-                        {h.note || "Add a note…"}
-                      </span>
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p
-              className="text-[0.9rem] leading-relaxed"
-              style={{ color: "var(--reader-muted)" }}
-            >
-              Select any text above to highlight it — then attach a note.
-              Highlights and reflections sync across your devices.
-            </p>
-          )}
-        </div>
+            Select any text above to highlight it — then attach a note. Notes
+            show in the margin here, and sync across your devices.
+          </p>
+        )}
       </section>
 
       {/* Floating selection toolbar */}
@@ -447,6 +503,115 @@ export function ReaderContent({
         />
       )}
     </>
+  );
+}
+
+// A margin comment (web). Reads like a Word/Docs comment: quote on top, note
+// below; clicking it opens an inline editor with a color row + delete.
+function CommentCard({
+  hl,
+  active,
+  onActivate,
+  onCommit,
+  onColor,
+  onDelete,
+}: {
+  hl: Highlight;
+  active: boolean;
+  onActivate: () => void;
+  onCommit: (note: string) => void;
+  onColor: (c: HighlightColor) => void;
+  onDelete: () => void;
+}) {
+  const [draft, setDraft] = useState(hl.note);
+  return (
+    <div
+      onClick={() => {
+        if (!active) onActivate();
+      }}
+      className={`cursor-pointer rounded-xl border p-3 shadow-sm transition-shadow ${
+        active ? "shadow-md" : "hover:shadow"
+      }`}
+      style={{
+        background: "var(--reader-surface)",
+        borderColor: active ? "var(--reader-accent)" : "var(--reader-border)",
+      }}
+    >
+      <div className="mb-1.5 flex items-start gap-2">
+        <span
+          aria-hidden
+          className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full"
+          style={{ background: `var(--hl-${hl.color})` }}
+        />
+        <span
+          className="min-w-0 flex-1 truncate text-[0.72rem] italic"
+          style={{ color: "var(--reader-muted)" }}
+        >
+          “{hl.quote}”
+        </span>
+      </div>
+      {active ? (
+        <div className="flex flex-col gap-2">
+          <textarea
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={() => onCommit(draft)}
+            rows={3}
+            placeholder="Write a note…"
+            className="w-full resize-y rounded-lg px-2.5 py-2 text-[0.85rem] leading-snug outline-none focus:ring-2"
+            style={{
+              background: "var(--reader-bg)",
+              color: "var(--reader-fg)",
+              border: "1px solid var(--reader-border)",
+            }}
+          />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              {COLORS.map((c) => (
+                <button
+                  key={c.key}
+                  type="button"
+                  onClick={() => onColor(c.key)}
+                  aria-label={`Color ${c.key}`}
+                  aria-pressed={hl.color === c.key}
+                  className={`h-5 w-5 rounded-full transition-transform hover:scale-110 ${
+                    hl.color === c.key
+                      ? "ring-2 ring-offset-1"
+                      : "ring-1 ring-black/10 dark:ring-white/10"
+                  }`}
+                  style={{
+                    background: c.swatch,
+                    ...(hl.color === c.key
+                      ? ({
+                          "--tw-ring-color": "var(--reader-accent)",
+                          "--tw-ring-offset-color": "var(--reader-surface)",
+                        } as CSSProperties)
+                      : {}),
+                  }}
+                />
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={onDelete}
+              className="rounded-md px-2 py-1 text-xs font-medium text-rose-600 transition-colors hover:bg-rose-500/10 dark:text-rose-400"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      ) : (
+        <p
+          className="text-[0.85rem] leading-snug"
+          style={{
+            color: hl.note ? "var(--reader-fg)" : "var(--reader-muted)",
+          }}
+        >
+          {hl.note || "Add a note…"}
+        </p>
+      )}
+    </div>
   );
 }
 
