@@ -1,20 +1,62 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { fmtDate } from "@/lib/format";
 
 // Hand-rolled SVG charts following the dataviz mark specs: 2px lines, rounded
 // data-ends, recessive grid/axes, 2px gaps between stacked segments, crosshair
-// + hover tooltips, a smoothed moving-average overlay, and (for recovery)
-// WHOOP-style R/Y/G zone bands. Colors are the validated reference/status
-// palette, themed via CSS variables (light / prefers-color-scheme: dark).
+// + tooltips, a smoothed moving-average overlay, and (for recovery) WHOOP-style
+// R/Y/G zone bands. Colors come from the validated reference/status palette,
+// themed via CSS variables (light / prefers-color-scheme: dark).
+//
+// Cross-platform behavior adapts by capability, not device:
+// - Pointer events drive the tooltip: mouse hovers; touch taps/scrubs, and the
+//   tooltip stays put after a touch (no hover to keep it alive).
+// - Geometry adapts to the rendered width via ResizeObserver: on narrow
+//   containers the SVG scale factor bumps font sizes, paddings, stroke widths,
+//   and shortens/reduces x-axis labels so text stays legible on phones.
 
-const W = 720;
-const H = 240;
-const PAD = { top: 16, right: 16, bottom: 32, left: 40 };
-const PW = W - PAD.left - PAD.right;
-const PH = H - PAD.top - PAD.bottom;
+const BASE_W = 720;
+
+function useGeom() {
+  const measureRef = useRef<HTMLDivElement>(null);
+  const [w, setW] = useState(BASE_W);
+  useEffect(() => {
+    const el = measureRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width;
+      if (width) setW(width);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // s = how much the viewBox is scaled down on screen; scale text/pads by it
+  // so they render at roughly constant CSS px. Capped at 2 (a 360px phone).
+  const s = Math.min(2, Math.max(1, BASE_W / Math.max(w, 1)));
+  const narrow = w < 480;
+  const H = s > 1.4 ? 300 : 240; // taller aspect on phones
+  const pad = {
+    top: 16,
+    right: 16,
+    bottom: Math.round(16 + 16 * s),
+    left: Math.round(40 * Math.max(1, s * 0.85)),
+  };
+  return {
+    measureRef,
+    s,
+    narrow,
+    W: BASE_W,
+    H,
+    pad,
+    pw: BASE_W - pad.left - pad.right,
+    ph: H - pad.top - pad.bottom,
+  };
+}
+
+type Geom = ReturnType<typeof useGeom>;
 
 export function VizStyles() {
   return (
@@ -37,7 +79,7 @@ export function VizStyles() {
           --z0:#184f95; --z1:#256abf; --z2:#3987e5; --z3:#5598e7; --z4:#86b6ef; --z5:#b7d3f6;
         }
       }
-      .whoop-viz svg { width:100%; height:auto; display:block; }
+      .whoop-viz svg { width:100%; height:auto; display:block; touch-action: pan-y; }
       .whoop-viz .tip {
         position:absolute; pointer-events:none; z-index:10; transform:translate(-50%,-100%);
         background:var(--surface); color:var(--ink);
@@ -53,10 +95,6 @@ type Zone = { min: number; max: number; colorVar: string };
 
 function niceMax(v: number, step: number) {
   return Math.max(step, Math.ceil(v / step) * step);
-}
-
-function xAt(i: number, n: number) {
-  return n <= 1 ? PAD.left + PW / 2 : PAD.left + (i / (n - 1)) * PW;
 }
 
 // Centered, null-aware moving average.
@@ -77,7 +115,11 @@ function movingAverage(values: (number | null)[], window: number) {
 }
 
 // SVG path over a series, breaking on null gaps.
-function linePath(values: (number | null)[], n: number, y: (v: number) => number) {
+function linePath(
+  values: (number | null)[],
+  xOf: (i: number) => number,
+  y: (v: number) => number,
+) {
   let d = "";
   let penUp = true;
   values.forEach((v, i) => {
@@ -85,7 +127,7 @@ function linePath(values: (number | null)[], n: number, y: (v: number) => number
       penUp = true;
       return;
     }
-    d += `${penUp ? "M" : "L"}${xAt(i, n)},${y(v)} `;
+    d += `${penUp ? "M" : "L"}${xOf(i)},${y(v)} `;
     penUp = false;
   });
   return d;
@@ -96,18 +138,47 @@ function zoneColor(v: number, zones?: Zone[]) {
   return z ? z.colorVar : null;
 }
 
+// Pointer-events helper: mouse hovers in/out; touch taps or scrubs, and the
+// tooltip sticks after the finger lifts (cleared only by mouse leave).
+function usePointer(
+  svgRef: React.RefObject<SVGSVGElement | null>,
+  toIndex: (x: number) => number | null,
+  setActive: (i: number | null) => void,
+) {
+  function locate(e: React.PointerEvent) {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const p = svg.createSVGPoint();
+    p.x = e.clientX;
+    p.y = e.clientY;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return;
+    const loc = p.matrixTransform(ctm.inverse());
+    setActive(toIndex(loc.x));
+  }
+  return {
+    onPointerDown: locate,
+    onPointerMove: locate,
+    onPointerLeave: (e: React.PointerEvent) => {
+      if (e.pointerType === "mouse") setActive(null);
+    },
+  };
+}
+
 function ChartFrame({
   title,
   subtitle,
   children,
   footer,
   href,
+  measureRef,
 }: {
   title: string;
   subtitle?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
   href?: string;
+  measureRef?: React.Ref<HTMLDivElement>;
 }) {
   const figure = (
     <figure
@@ -131,7 +202,9 @@ function ChartFrame({
           </span>
         ) : null}
       </figcaption>
-      <div className="relative">{children}</div>
+      <div className="relative" ref={measureRef}>
+        {children}
+      </div>
       {footer}
     </figure>
   );
@@ -150,12 +223,14 @@ function EmptyNote() {
 function XAxisLabels({
   dates,
   xOf,
+  g,
 }: {
   dates: string[];
   xOf: (i: number) => number;
+  g: Geom;
 }) {
   const n = dates.length;
-  const count = Math.min(4, n);
+  const count = Math.min(g.narrow ? 3 : 4, n);
   if (count < 1) return null;
   const idxs =
     count === 1
@@ -164,22 +239,61 @@ function XAxisLabels({
   return (
     <>
       {idxs.map((i, k) => {
-        const label = fmtDate(dates[i]);
-        if (!label) return null;
+        const full = fmtDate(dates[i]);
+        if (!full) return null;
+        const label = g.narrow ? full.slice(0, 5) : full; // MM-DD when narrow
         const anchor = k === 0 ? "start" : k === count - 1 ? "end" : "middle";
         return (
           <text
             key={i}
             x={xOf(i)}
-            y={H - 10}
+            y={g.H - 6 * g.s}
             textAnchor={anchor}
-            fontSize={10}
+            fontSize={10 * g.s}
             fill="var(--muted)"
           >
             {label}
           </text>
         );
       })}
+    </>
+  );
+}
+
+function YGrid({
+  values,
+  y,
+  g,
+  format,
+}: {
+  values: number[];
+  y: (v: number) => number;
+  g: Geom;
+  format?: (v: number) => string;
+}) {
+  return (
+    <>
+      {values.map((gv, k) => (
+        <g key={k}>
+          <line
+            x1={g.pad.left}
+            x2={g.W - g.pad.right}
+            y1={y(gv)}
+            y2={y(gv)}
+            stroke="var(--grid)"
+            strokeWidth={1}
+          />
+          <text
+            x={g.pad.left - 6}
+            y={y(gv) + 3.5 * g.s}
+            textAnchor="end"
+            fontSize={11 * g.s}
+            fill="var(--muted)"
+          >
+            {format ? format(gv) : Math.round(gv)}
+          </text>
+        </g>
+      ))}
     </>
   );
 }
@@ -211,8 +325,18 @@ export function LineChart({
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [active, setActive] = useState<number | null>(null);
+  const g = useGeom();
   const values = data.map((d) => d.value);
   const present = values.filter((v): v is number => v != null);
+  const n = data.length;
+
+  const xAt = (i: number) =>
+    n <= 1 ? g.pad.left + g.pw / 2 : g.pad.left + (i / (n - 1)) * g.pw;
+  const pointer = usePointer(
+    svgRef,
+    (x) => Math.max(0, Math.min(n - 1, Math.round(((x - g.pad.left) / g.pw) * (n - 1)))),
+    setActive,
+  );
 
   if (!present.length)
     return (
@@ -224,15 +348,14 @@ export function LineChart({
   const lo = domain ? domain[0] : Math.min(...present);
   const hi = domain ? domain[1] : Math.max(...present);
   const span = hi - lo || 1;
-  const y = (v: number) => PAD.top + (1 - (v - lo) / span) * PH;
-  const n = data.length;
+  const y = (v: number) => g.pad.top + (1 - (v - lo) / span) * g.ph;
   const dates = data.map((d) => d.date);
 
   const window = Math.min(45, Math.max(5, Math.round(n / 12)));
   const maVals = average ? movingAverage(values, window) : null;
 
-  const raw = linePath(values, n, y);
-  const ma = maVals ? linePath(maVals, n, y) : "";
+  const raw = linePath(values, xAt, y);
+  const ma = maVals ? linePath(maVals, xAt, y) : "";
 
   const ticks = 4;
   const gridVals = Array.from({ length: ticks + 1 }, (_, k) => lo + (span * k) / ticks);
@@ -247,75 +370,54 @@ export function LineChart({
     })
     .filter((x): x is { i: number; v: number } => x != null);
 
-  function onMove(e: React.MouseEvent) {
-    const svg = svgRef.current;
-    if (!svg) return;
-    const p = svg.createSVGPoint();
-    p.x = e.clientX;
-    p.y = e.clientY;
-    const ctm = svg.getScreenCTM();
-    if (!ctm) return;
-    const loc = p.matrixTransform(ctm.inverse());
-    const i = Math.round(((loc.x - PAD.left) / PW) * (n - 1));
-    setActive(Math.max(0, Math.min(n - 1, i)));
-  }
-
   const activePt = active != null ? data[active] : null;
   const showTip = activePt != null && activePt.value != null;
-  const rawWidth = average ? 1.5 : 2;
+  const strokeW = 2 * Math.min(g.s, 1.4);
+  const rawWidth = average ? strokeW * 0.75 : strokeW;
   const rawOpacity = average ? 0.55 : 1;
 
   return (
-    <ChartFrame title={title} subtitle={subtitle} href={href}>
+    <ChartFrame title={title} subtitle={subtitle} href={href} measureRef={g.measureRef}>
       <svg
         ref={svgRef}
-        viewBox={`0 0 ${W} ${H}`}
+        viewBox={`0 0 ${g.W} ${g.H}`}
         role="img"
         aria-label={subtitle ? `${title}, ${subtitle}` : title}
-        onMouseMove={onMove}
-        onMouseLeave={() => setActive(null)}
+        {...pointer}
       >
-        {/* R/Y/G zone bands */}
         {zones?.map((z, k) => (
           <rect
             key={k}
-            x={PAD.left}
+            x={g.pad.left}
             y={y(z.max)}
-            width={PW}
+            width={g.pw}
             height={Math.max(0, y(z.min) - y(z.max))}
             fill={`var(${z.colorVar})`}
             opacity={0.12}
           />
         ))}
-        {gridVals.map((gv, k) => (
-          <g key={k}>
-            <line x1={PAD.left} x2={W - PAD.right} y1={y(gv)} y2={y(gv)} stroke="var(--grid)" strokeWidth={1} />
-            <text x={PAD.left - 6} y={y(gv) + 3} textAnchor="end" fontSize={11} fill="var(--muted)">
-              {Math.round(gv)}
-            </text>
-          </g>
-        ))}
-        <XAxisLabels dates={dates} xOf={(i) => xAt(i, n)} />
+        <YGrid values={gridVals} y={y} g={g} />
+        <XAxisLabels dates={dates} xOf={xAt} g={g} />
         <path d={raw} fill="none" stroke={`var(${colorVar})`} strokeWidth={rawWidth} strokeOpacity={rawOpacity} strokeLinejoin="round" strokeLinecap="round" />
         {isolated.map((p) => (
           <circle
             key={`iso-${p.i}`}
-            cx={xAt(p.i, n)}
+            cx={xAt(p.i)}
             cy={y(p.v)}
-            r={2.5}
+            r={2.5 * g.s}
             fill={`var(${zoneColor(p.v, zones) ?? colorVar})`}
           />
         ))}
         {ma && (
-          <path d={ma} fill="none" stroke="var(--avg)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+          <path d={ma} fill="none" stroke="var(--avg)" strokeWidth={strokeW} strokeLinejoin="round" strokeLinecap="round" />
         )}
         {showTip && (
           <>
-            <line x1={xAt(active!, n)} x2={xAt(active!, n)} y1={PAD.top} y2={PAD.top + PH} stroke="var(--axis)" strokeWidth={1} />
+            <line x1={xAt(active!)} x2={xAt(active!)} y1={g.pad.top} y2={g.pad.top + g.ph} stroke="var(--axis)" strokeWidth={1} />
             <circle
-              cx={xAt(active!, n)}
+              cx={xAt(active!)}
               cy={y(activePt!.value as number)}
-              r={4}
+              r={4 * g.s}
               fill={`var(${zoneColor(activePt!.value as number, zones) ?? colorVar})`}
               stroke="var(--surface)"
               strokeWidth={2}
@@ -327,8 +429,8 @@ export function LineChart({
         <div
           className="tip"
           style={{
-            left: `${(xAt(active!, n) / W) * 100}%`,
-            top: `${(y(activePt!.value as number) / H) * 100}%`,
+            left: `${(xAt(active!) / g.W) * 100}%`,
+            top: `${(y(activePt!.value as number) / g.H) * 100}%`,
           }}
         >
           <strong>
@@ -365,6 +467,18 @@ export function SleepStagesChart({
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [active, setActive] = useState<number | null>(null);
+  const g = useGeom();
+  const n = data.length;
+  const band = g.pw / Math.max(n, 1);
+  const bandCenter = (i: number) => g.pad.left + band * i + band / 2;
+  const pointer = usePointer(
+    svgRef,
+    (x) => {
+      const i = Math.floor((x - g.pad.left) / band);
+      return i >= 0 && i < n ? i : null;
+    },
+    setActive,
+  );
 
   if (!data.length)
     return (
@@ -375,26 +489,9 @@ export function SleepStagesChart({
 
   const totals = data.map((d) => d.deep + d.light + d.rem + d.awake);
   const max = niceMax(Math.max(...totals), 2);
-  const n = data.length;
-  const band = PW / n;
   const bw = Math.min(band * 0.7, 28);
-  const y = (v: number) => PAD.top + (1 - v / max) * PH;
+  const y = (v: number) => g.pad.top + (1 - v / max) * g.ph;
   const gridVals = Array.from({ length: 5 }, (_, k) => (max * k) / 4);
-  const bandCenter = (i: number) => PAD.left + band * i + band / 2;
-
-  function onMove(e: React.MouseEvent) {
-    const svg = svgRef.current;
-    if (!svg) return;
-    const p = svg.createSVGPoint();
-    p.x = e.clientX;
-    p.y = e.clientY;
-    const ctm = svg.getScreenCTM();
-    if (!ctm) return;
-    const loc = p.matrixTransform(ctm.inverse());
-    const i = Math.floor((loc.x - PAD.left) / band);
-    setActive(i >= 0 && i < n ? i : null);
-  }
-
   const a = active != null ? data[active] : null;
 
   return (
@@ -402,6 +499,7 @@ export function SleepStagesChart({
       title={title}
       subtitle={subtitle}
       href={href}
+      measureRef={g.measureRef}
       footer={
         <div className="flex flex-wrap gap-x-4 gap-y-1">
           {STAGES.map((s) => (
@@ -415,21 +513,18 @@ export function SleepStagesChart({
     >
       <svg
         ref={svgRef}
-        viewBox={`0 0 ${W} ${H}`}
+        viewBox={`0 0 ${g.W} ${g.H}`}
         role="img"
         aria-label={subtitle ? `${title}, ${subtitle}` : title}
-        onMouseMove={onMove}
-        onMouseLeave={() => setActive(null)}
+        {...pointer}
       >
-        {gridVals.map((gv, k) => (
-          <g key={k}>
-            <line x1={PAD.left} x2={W - PAD.right} y1={y(gv)} y2={y(gv)} stroke="var(--grid)" strokeWidth={1} />
-            <text x={PAD.left - 6} y={y(gv) + 3} textAnchor="end" fontSize={11} fill="var(--muted)">
-              {Number.isInteger(gv) ? gv : gv.toFixed(1)}
-            </text>
-          </g>
-        ))}
-        <XAxisLabels dates={data.map((d) => d.date)} xOf={bandCenter} />
+        <YGrid
+          values={gridVals}
+          y={y}
+          g={g}
+          format={(gv) => (Number.isInteger(gv) ? String(gv) : gv.toFixed(1))}
+        />
+        <XAxisLabels dates={data.map((d) => d.date)} xOf={bandCenter} g={g} />
         {data.map((row, i) => {
           const cx = bandCenter(i);
           let acc = 0;
@@ -448,7 +543,7 @@ export function SleepStagesChart({
         })}
       </svg>
       {a && (
-        <div className="tip" style={{ left: `${(bandCenter(active!) / W) * 100}%`, top: "8%" }}>
+        <div className="tip" style={{ left: `${(bandCenter(active!) / g.W) * 100}%`, top: "8%" }}>
           <strong>{fmtDate(a.date)}</strong>
           {STAGES.map((s) => (
             <div key={s.key} style={{ color: "var(--ink2)" }}>
@@ -486,6 +581,18 @@ export function BarChart({
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [active, setActive] = useState<number | null>(null);
+  const g = useGeom();
+  const n = data.length;
+  const band = g.pw / Math.max(n, 1);
+  const bandCenter = (i: number) => g.pad.left + band * i + band / 2;
+  const pointer = usePointer(
+    svgRef,
+    (x) => {
+      const i = Math.floor((x - g.pad.left) / band);
+      return i >= 0 && i < n ? i : null;
+    },
+    setActive,
+  );
 
   const vals = data.map((d) => d.value);
   const present = vals.filter((v): v is number => v != null);
@@ -497,50 +604,25 @@ export function BarChart({
     );
 
   const max = domainMax ?? niceMax(Math.max(...present), 5);
-  const n = data.length;
-  const band = PW / n;
   const bw = Math.min(band * 0.7, 28);
-  const y = (v: number) => PAD.top + (1 - v / max) * PH;
+  const y = (v: number) => g.pad.top + (1 - v / max) * g.ph;
   const gridVals = Array.from({ length: 5 }, (_, k) => (max * k) / 4);
-  const bandCenter = (i: number) => PAD.left + band * i + band / 2;
 
   const window = Math.min(45, Math.max(5, Math.round(n / 12)));
-  const ma = average ? linePath(movingAverage(vals, window), n, y) : "";
-
-  function onMove(e: React.MouseEvent) {
-    const svg = svgRef.current;
-    if (!svg) return;
-    const p = svg.createSVGPoint();
-    p.x = e.clientX;
-    p.y = e.clientY;
-    const ctm = svg.getScreenCTM();
-    if (!ctm) return;
-    const loc = p.matrixTransform(ctm.inverse());
-    const i = Math.floor((loc.x - PAD.left) / band);
-    setActive(i >= 0 && i < n ? i : null);
-  }
-
+  const ma = average ? linePath(movingAverage(vals, window), bandCenter, y) : "";
   const a = active != null ? data[active] : null;
 
   return (
-    <ChartFrame title={title} subtitle={subtitle} href={href}>
+    <ChartFrame title={title} subtitle={subtitle} href={href} measureRef={g.measureRef}>
       <svg
         ref={svgRef}
-        viewBox={`0 0 ${W} ${H}`}
+        viewBox={`0 0 ${g.W} ${g.H}`}
         role="img"
         aria-label={subtitle ? `${title}, ${subtitle}` : title}
-        onMouseMove={onMove}
-        onMouseLeave={() => setActive(null)}
+        {...pointer}
       >
-        {gridVals.map((gv, k) => (
-          <g key={k}>
-            <line x1={PAD.left} x2={W - PAD.right} y1={y(gv)} y2={y(gv)} stroke="var(--grid)" strokeWidth={1} />
-            <text x={PAD.left - 6} y={y(gv) + 3} textAnchor="end" fontSize={11} fill="var(--muted)">
-              {Math.round(gv)}
-            </text>
-          </g>
-        ))}
-        <XAxisLabels dates={data.map((d) => d.date)} xOf={bandCenter} />
+        <YGrid values={gridVals} y={y} g={g} />
+        <XAxisLabels dates={data.map((d) => d.date)} xOf={bandCenter} g={g} />
         {data.map((row, i) => {
           if (row.value == null) return null;
           const cx = bandCenter(i);
@@ -551,17 +633,17 @@ export function BarChart({
               x={cx - bw / 2}
               y={yTop}
               width={bw}
-              height={Math.max(0, PAD.top + PH - yTop)}
+              height={Math.max(0, g.pad.top + g.ph - yTop)}
               rx={Math.min(2, bw / 2)}
               fill={`var(${colorVar})`}
               opacity={active == null || active === i ? 1 : 0.45}
             />
           );
         })}
-        {ma && <path d={ma} fill="none" stroke="var(--avg)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />}
+        {ma && <path d={ma} fill="none" stroke="var(--avg)" strokeWidth={2 * Math.min(g.s, 1.4)} strokeLinejoin="round" strokeLinecap="round" />}
       </svg>
       {a && a.value != null && (
-        <div className="tip" style={{ left: `${(bandCenter(active!) / W) * 100}%`, top: `${(y(a.value) / H) * 100}%` }}>
+        <div className="tip" style={{ left: `${(bandCenter(active!) / g.W) * 100}%`, top: `${(y(a.value) / g.H) * 100}%` }}>
           <strong>
             {a.value.toFixed(decimals)}
             {unit}

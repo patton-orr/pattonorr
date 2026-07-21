@@ -41,7 +41,7 @@ export function RangeToggle({
           key={o.v}
           href={`${basePath}?range=${o.v}`}
           aria-current={range === o.v ? "true" : undefined}
-          className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+          className={`rounded-full px-3 py-1 text-xs font-medium transition-colors pointer-coarse:px-4 pointer-coarse:py-2.5 ${
             range === o.v
               ? "bg-black/[.06] text-black dark:bg-white/[.1] dark:text-zinc-50"
               : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"

@@ -75,7 +75,7 @@ function Header({ lastSync }: { lastSync: string | null }) {
         ) : null}
         <button
           type="submit"
-          className="rounded-full border border-black/[.1] px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-black/[.04] dark:border-white/[.145] dark:text-zinc-300 dark:hover:bg-white/[.06]"
+          className="rounded-full border border-black/[.1] px-4 py-2 text-sm font-medium text-zinc-700 transition-colors pointer-coarse:py-3 hover:bg-black/[.04] dark:border-white/[.145] dark:text-zinc-300 dark:hover:bg-white/[.06]"
         >
           Sync now
         </button>

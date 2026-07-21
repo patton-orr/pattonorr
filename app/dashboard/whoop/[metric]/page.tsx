@@ -102,7 +102,7 @@ function DataTable({
               {r.map((c, j) => (
                 <td
                   key={j}
-                  className={`py-1.5 pr-3 tabular-nums ${j > 0 ? "text-right" : ""} ${j === 1 && head[1] === "Sport" ? "capitalize text-left" : ""}`}
+                  className={`py-1.5 pr-3 whitespace-nowrap tabular-nums ${j > 0 ? "text-right" : ""} ${j === 1 && head[1] === "Sport" ? "capitalize text-left" : ""}`}
                 >
                   {c}
                 </td>
@@ -309,7 +309,7 @@ export default async function MetricDetail({
         <div className="flex flex-col gap-2">
           <Link
             href="/dashboard/whoop"
-            className="text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+            className="inline-block text-xs text-zinc-500 pointer-coarse:py-2 hover:text-zinc-800 dark:hover:text-zinc-200"
           >
             ← WHOOP
           </Link>
