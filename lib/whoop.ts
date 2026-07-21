@@ -161,11 +161,27 @@ export type WhoopSummary = {
   strain: { strain: number } | null;
 };
 
-async function get<T>(path: string, accessToken: string): Promise<T> {
+async function get<T>(
+  path: string,
+  accessToken: string,
+  attempt = 0,
+): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
     cache: "no-store",
   });
+  // Respect rate limiting with a bounded backoff. A numeric Retry-After is
+  // honored but capped at 60s so a large server value can't exceed the
+  // function's maxDuration; otherwise fall back to capped exponential backoff.
+  if (res.status === 429 && attempt < 5) {
+    const header = Number(res.headers.get("retry-after"));
+    const seconds =
+      Number.isFinite(header) && header > 0
+        ? Math.min(header, 60)
+        : Math.min(2 ** attempt, 30);
+    await new Promise((r) => setTimeout(r, seconds * 1000));
+    return get<T>(path, accessToken, attempt + 1);
+  }
   if (!res.ok) {
     throw new Error(`WHOOP GET ${path} failed (${res.status})`);
   }
@@ -234,3 +250,130 @@ export async function fetchSummary(accessToken: string): Promise<WhoopSummary> {
         : null,
   };
 }
+
+// --- History (paginated) ---
+// Raw record shapes we persist. These mirror the WHOOP v2 schemas; the sync
+// layer maps them into DB columns.
+
+export type CycleRecord = {
+  id: number;
+  start: string;
+  end?: string;
+  timezone_offset: string;
+  score_state: string;
+  created_at: string;
+  updated_at: string;
+  score?: {
+    strain: number;
+    kilojoule: number;
+    average_heart_rate: number;
+    max_heart_rate: number;
+  };
+};
+
+export type RecoveryRecord = {
+  cycle_id: number;
+  sleep_id: string;
+  score_state: string;
+  created_at: string;
+  updated_at: string;
+  score?: {
+    recovery_score: number;
+    resting_heart_rate: number;
+    hrv_rmssd_milli: number;
+    spo2_percentage?: number;
+    skin_temp_celsius?: number;
+  };
+};
+
+export type SleepRecord = {
+  id: string;
+  cycle_id: number;
+  start: string;
+  end: string;
+  timezone_offset: string;
+  nap: boolean;
+  score_state: string;
+  created_at: string;
+  updated_at: string;
+  score?: {
+    respiratory_rate?: number;
+    sleep_performance_percentage?: number | null;
+    sleep_consistency_percentage?: number | null;
+    sleep_efficiency_percentage?: number | null;
+    stage_summary: {
+      total_in_bed_time_milli: number;
+      total_awake_time_milli: number;
+      total_light_sleep_time_milli: number;
+      total_slow_wave_sleep_time_milli: number;
+      total_rem_sleep_time_milli: number;
+      sleep_cycle_count: number;
+      disturbance_count: number;
+    };
+  };
+};
+
+export type WorkoutRecord = {
+  id: string;
+  start: string;
+  end: string;
+  timezone_offset: string;
+  sport_name: string;
+  score_state: string;
+  created_at: string;
+  updated_at: string;
+  score?: {
+    strain: number;
+    average_heart_rate: number;
+    max_heart_rate: number;
+    kilojoule: number;
+    percent_recorded: number;
+    distance_meter?: number;
+    altitude_gain_meter?: number;
+    altitude_change_meter?: number;
+    zone_durations: {
+      zone_zero_milli: number;
+      zone_one_milli: number;
+      zone_two_milli: number;
+      zone_three_milli: number;
+      zone_four_milli: number;
+      zone_five_milli: number;
+    };
+  };
+};
+
+type Paginated<T> = { records?: T[]; next_token?: string };
+
+/** Walk every page between `start`/`end` (ISO), following next_token. */
+async function fetchAll<T>(
+  path: string,
+  accessToken: string,
+  opts: { start?: string; end?: string } = {},
+): Promise<T[]> {
+  const out: T[] = [];
+  let nextToken: string | undefined;
+  do {
+    const qs = new URLSearchParams({ limit: "25" });
+    if (opts.start) qs.set("start", opts.start);
+    if (opts.end) qs.set("end", opts.end);
+    if (nextToken) qs.set("nextToken", nextToken);
+    const page = await get<Paginated<T>>(
+      `${path}?${qs.toString()}`,
+      accessToken,
+    );
+    if (page.records?.length) out.push(...page.records);
+    nextToken = page.next_token;
+  } while (nextToken);
+  return out;
+}
+
+type HistoryOpts = { start?: string; end?: string };
+
+export const fetchCycles = (t: string, o: HistoryOpts = {}) =>
+  fetchAll<CycleRecord>("/v2/cycle", t, o);
+export const fetchRecoveries = (t: string, o: HistoryOpts = {}) =>
+  fetchAll<RecoveryRecord>("/v2/recovery", t, o);
+export const fetchSleeps = (t: string, o: HistoryOpts = {}) =>
+  fetchAll<SleepRecord>("/v2/activity/sleep", t, o);
+export const fetchWorkouts = (t: string, o: HistoryOpts = {}) =>
+  fetchAll<WorkoutRecord>("/v2/activity/workout", t, o);

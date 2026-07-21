@@ -1,13 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
-import {
-  exchangeCode,
-  encryptTokens,
-  STATE_COOKIE,
-  TOKEN_COOKIE,
-  TOKEN_COOKIE_MAX_AGE,
-} from "@/lib/whoop";
+import { exchangeCode, STATE_COOKIE } from "@/lib/whoop";
+import { saveTokens } from "@/lib/whoop-store";
 
-// WHOOP redirects here with ?code&state after the user approves.
+// WHOOP redirects here with ?code&state after the user approves. Tokens are
+// persisted to the DB (not a cookie) so the cron sync can use them.
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
@@ -24,22 +20,16 @@ export async function GET(request: NextRequest) {
     return fail("state");
   }
 
-  let cookieValue: string;
   try {
     const tokens = await exchangeCode(code, `${url.origin}/api/whoop/callback`);
-    cookieValue = encryptTokens(tokens);
+    await saveTokens(tokens);
   } catch {
     return fail("exchange");
   }
 
-  const res = NextResponse.redirect(new URL("/dashboard/whoop", url.origin));
-  res.cookies.set(TOKEN_COOKIE, cookieValue, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: TOKEN_COOKIE_MAX_AGE,
-  });
+  const res = NextResponse.redirect(
+    new URL("/dashboard/whoop?connected=1", url.origin),
+  );
   res.cookies.delete(STATE_COOKIE);
   return res;
 }

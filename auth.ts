@@ -22,6 +22,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // site to their home screen. Everything else requires the allowed user.
       const publicPaths = ["/", "/manifest.webmanifest", "/icon", "/apple-icon"];
       if (publicPaths.includes(pathname)) return true;
+      // The WHOOP cron sync has no session; it's guarded by CRON_SECRET.
+      if (pathname === "/api/whoop/sync") return true;
       return Boolean(auth?.user);
     },
   },
