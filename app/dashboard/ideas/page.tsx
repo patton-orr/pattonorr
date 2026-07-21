@@ -19,6 +19,14 @@ type Idea = {
 
 const ideas: Idea[] = [
   {
+    title: "Email on the pattonorr.com domain",
+    description:
+      "A real name@pattonorr.com address. Simplest inbound: Cloudflare Email Routing (free) forwards mail to Gmail via MX + SPF records at the DNS host — no app code. To send as the address: Gmail 'Send mail as' through an SMTP relay, or a transactional provider (Resend/Postmark) with DKIM + DMARC for anything the app itself sends (e.g. guest invites, notifications). Google Workspace (~$6/user/mo) gives a full mailbox if a forwarding alias isn't enough.",
+    complexity: "Medium",
+    timeLift:
+      "~30–60 min for inbound forwarding (Cloudflare Email Routing + DNS); +~1–2 hrs to add send-as or a transactional provider with DKIM/DMARC.",
+  },
+  {
     title: "Push Notifications",
     description:
       "Web Push to the installed iOS home-screen app (works on iOS 16.4+ in standalone mode). Needs a service worker, VAPID keys, a subscribe toggle in the dashboard, storage for subscriptions, and a web-push send route.",

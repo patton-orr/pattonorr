@@ -1,28 +1,47 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { readerHref } from "@/lib/bible-books";
 import { randomVerseAction } from "./faith/actions";
 
 export type Verse = { ref: string; text: string; canonical: string };
 
+const MOMENT_MS = 5 * 60 * 1000;
+
 export function VerseOfTheDayCard({ initial }: { initial: Verse }) {
   const [verse, setVerse] = useState(initial);
   const [pending, startTransition] = useTransition();
 
+  // Mirror the current verse into a ref so the interval always excludes it.
+  const verseRef = useRef(verse);
+  useEffect(() => {
+    verseRef.current = verse;
+  }, [verse]);
+
   function refresh() {
     startTransition(async () => {
-      const next = await randomVerseAction(verse.ref);
+      const next = await randomVerseAction(verseRef.current.ref);
       if (next) setVerse(next);
     });
   }
+
+  // Advance to a fresh verse every 5 minutes while the card is on screen.
+  useEffect(() => {
+    const id = setInterval(() => {
+      startTransition(async () => {
+        const next = await randomVerseAction(verseRef.current.ref);
+        if (next) setVerse(next);
+      });
+    }, MOMENT_MS);
+    return () => clearInterval(id);
+  }, []);
 
   return (
     <div className="faith-theme flex flex-col gap-3 rounded-2xl border border-[color:var(--reader-border)] bg-[var(--reader-surface)] p-6 sm:p-8">
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-medium uppercase tracking-wide text-[color:var(--reader-muted)]">
-          Verse of the day
+          Verse of the moment
         </span>
         <button
           type="button"
