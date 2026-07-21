@@ -5,18 +5,22 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { signOutAction } from "./actions";
 
-// Nav is data-driven so it can grow into life areas (Work, Life, Finances,
-// Faith, Relationships, Health…) — and later a focus filter that hides areas —
-// without touching the rendering. WHOOP lives under Health as the first group.
+// Data-driven nav: leaves and area groups. Each group header links to its own
+// landing page and can collapse/expand; sub-items are indented beneath it.
 type Leaf = { label: string; href: string };
-type Group = { label: string; items: Leaf[] };
+type Group = { label: string; href: string; items: Leaf[] };
 type Entry = Leaf | Group;
 
 const NAV: Entry[] = [
   { label: "Home", href: "/dashboard" },
-  { label: "Health", items: [{ label: "WHOOP", href: "/dashboard/whoop" }] },
+  {
+    label: "Health",
+    href: "/dashboard/health",
+    items: [{ label: "WHOOP", href: "/dashboard/whoop" }],
+  },
   {
     label: "Faith",
+    href: "/dashboard/faith",
     items: [
       { label: "Bible", href: "/bible" },
       { label: "Reading plan", href: "/dashboard/bible/plan" },
@@ -28,42 +32,48 @@ const NAV: Entry[] = [
   { label: "Settings", href: "/dashboard/settings" },
 ];
 
-// All leaf hrefs, so the single most-specific match wins — otherwise a parent
-// like Bible (/dashboard/bible) would light up on /dashboard/bible/plan too.
-const LEAVES = NAV.flatMap((e) => ("items" in e ? e.items : [e])).map((i) => i.href);
+const isGroup = (e: Entry): e is Group => "items" in e;
+
+// Every href (group landings + leaves); most-specific match wins so a parent
+// doesn't co-highlight with its child.
+const HREFS = NAV.flatMap((e) =>
+  isGroup(e) ? [e.href, ...e.items.map((i) => i.href)] : [e.href],
+);
 
 function activeHref(pathname: string): string | null {
-  if (LEAVES.includes(pathname)) return pathname;
+  if (HREFS.includes(pathname)) return pathname;
   let best: string | null = null;
-  for (const h of LEAVES) {
+  for (const h of HREFS) {
     if (h === "/dashboard") continue; // home matches only exactly
     if (pathname.startsWith(h + "/") && (!best || h.length > best.length)) best = h;
   }
   return best;
 }
 
-function NavLink({
-  item,
-  active,
-  onNavigate,
-}: {
-  item: Leaf;
-  active: boolean;
-  onNavigate?: () => void;
-}) {
+function itemClass(active: boolean) {
+  return `rounded-lg px-3 py-2 text-sm font-medium transition-colors pointer-coarse:py-3 ${
+    active
+      ? "bg-black/[.06] text-black dark:bg-white/[.1] dark:text-zinc-50"
+      : "text-zinc-600 hover:bg-black/[.04] hover:text-black dark:text-zinc-400 dark:hover:bg-white/[.06] dark:hover:text-zinc-50"
+  }`;
+}
+
+function Chevron({ open }: { open: boolean }) {
   return (
-    <Link
-      href={item.href}
-      onClick={onNavigate}
-      aria-current={active ? "page" : undefined}
-      className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors pointer-coarse:py-3 ${
-        active
-          ? "bg-black/[.06] text-black dark:bg-white/[.1] dark:text-zinc-50"
-          : "text-zinc-600 hover:bg-black/[.04] hover:text-black dark:text-zinc-400 dark:hover:bg-white/[.06] dark:hover:text-zinc-50"
-      }`}
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.25}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className={`transition-transform ${open ? "" : "-rotate-90"}`}
     >
-      {item.label}
-    </Link>
+      <path d="M6 9l6 6 6-6" />
+    </svg>
   );
 }
 
@@ -71,10 +81,14 @@ function SidebarContent({
   pathname,
   email,
   onNavigate,
+  collapsed,
+  onToggle,
 }: {
   pathname: string;
   email?: string;
   onNavigate?: () => void;
+  collapsed: Set<string>;
+  onToggle: (label: string) => void;
 }) {
   const active = activeHref(pathname);
   return (
@@ -82,19 +96,55 @@ function SidebarContent({
       <div className="px-3 pt-2 text-lg font-semibold tracking-tight text-black dark:text-zinc-50">
         Patton Orr
       </div>
-      <nav className="flex flex-col gap-4">
+      <nav className="flex flex-col gap-1">
         {NAV.map((entry) =>
-          "items" in entry ? (
-            <div key={entry.label} className="flex flex-col gap-1">
-              <span className="px-3 pb-0.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
-                {entry.label}
-              </span>
-              {entry.items.map((item) => (
-                <NavLink key={item.href} item={item} active={item.href === active} onNavigate={onNavigate} />
-              ))}
+          isGroup(entry) ? (
+            <div key={entry.label} className="flex flex-col">
+              <div className="flex items-center gap-0.5">
+                <Link
+                  href={entry.href}
+                  onClick={onNavigate}
+                  aria-current={entry.href === active ? "page" : undefined}
+                  className={`flex-1 ${itemClass(entry.href === active)}`}
+                >
+                  {entry.label}
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => onToggle(entry.label)}
+                  aria-expanded={!collapsed.has(entry.label)}
+                  aria-label={`${collapsed.has(entry.label) ? "Expand" : "Collapse"} ${entry.label}`}
+                  className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-black/[.04] hover:text-zinc-700 dark:hover:bg-white/[.06] dark:hover:text-zinc-200"
+                >
+                  <Chevron open={!collapsed.has(entry.label)} />
+                </button>
+              </div>
+              {!collapsed.has(entry.label) && (
+                <div className="ml-3 mt-0.5 flex flex-col gap-0.5 border-l border-black/[.07] pl-2 dark:border-white/[.1]">
+                  {entry.items.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={onNavigate}
+                      aria-current={item.href === active ? "page" : undefined}
+                      className={itemClass(item.href === active)}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
-            <NavLink key={entry.href} item={entry} active={entry.href === active} onNavigate={onNavigate} />
+            <Link
+              key={entry.href}
+              href={entry.href}
+              onClick={onNavigate}
+              aria-current={entry.href === active ? "page" : undefined}
+              className={itemClass(entry.href === active)}
+            >
+              {entry.label}
+            </Link>
           ),
         )}
       </nav>
@@ -119,7 +169,15 @@ function SidebarContent({
 export function DashboardNav({ email }: { email?: string }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const close = () => setOpen(false);
+  const toggleGroup = (label: string) =>
+    setCollapsed((prev) => {
+      const n = new Set(prev);
+      if (n.has(label)) n.delete(label);
+      else n.add(label);
+      return n;
+    });
 
   // While open: Escape closes, and lock body scroll behind the drawer.
   useEffect(() => {
@@ -134,6 +192,16 @@ export function DashboardNav({ email }: { email?: string }) {
       document.body.style.overflow = "";
     };
   }, [open]);
+
+  const content = (onNavigate?: () => void) => (
+    <SidebarContent
+      pathname={pathname}
+      email={email}
+      onNavigate={onNavigate}
+      collapsed={collapsed}
+      onToggle={toggleGroup}
+    />
+  );
 
   return (
     <>
@@ -157,13 +225,13 @@ export function DashboardNav({ email }: { email?: string }) {
 
       {/* Persistent sidebar (tablet + desktop) */}
       <aside className="hidden w-60 shrink-0 border-r border-black/[.08] bg-zinc-50 md:block dark:border-white/[.145] dark:bg-black">
-        <SidebarContent pathname={pathname} email={email} />
+        {content()}
       </aside>
 
       {/* Mobile drawer */}
       <div
         aria-hidden
-        onClick={() => setOpen(false)}
+        onClick={close}
         className={`fixed inset-0 z-40 bg-black/40 transition-opacity md:hidden ${
           open ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
@@ -176,7 +244,7 @@ export function DashboardNav({ email }: { email?: string }) {
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <SidebarContent pathname={pathname} email={email} onNavigate={close} />
+        {content(close)}
       </aside>
     </>
   );
