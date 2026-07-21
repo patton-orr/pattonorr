@@ -15,26 +15,42 @@ type Entry = Leaf | Group;
 const NAV: Entry[] = [
   { label: "Home", href: "/dashboard" },
   { label: "Health", items: [{ label: "WHOOP", href: "/dashboard/whoop" }] },
-  { label: "Faith", items: [{ label: "Bible", href: "/dashboard/bible" }] },
+  {
+    label: "Faith",
+    items: [
+      { label: "Bible", href: "/dashboard/bible" },
+      { label: "Reading plan", href: "/dashboard/bible/plan" },
+      { label: "Saved", href: "/dashboard/bible/saved" },
+    ],
+  },
   { label: "Notes", href: "/dashboard/notes" },
   { label: "Ideas", href: "/dashboard/ideas" },
   { label: "Settings", href: "/dashboard/settings" },
 ];
 
-function isActive(pathname: string, href: string) {
-  return href === "/dashboard" ? pathname === href : pathname.startsWith(href);
+// All leaf hrefs, so the single most-specific match wins — otherwise a parent
+// like Bible (/dashboard/bible) would light up on /dashboard/bible/plan too.
+const LEAVES = NAV.flatMap((e) => ("items" in e ? e.items : [e])).map((i) => i.href);
+
+function activeHref(pathname: string): string | null {
+  if (LEAVES.includes(pathname)) return pathname;
+  let best: string | null = null;
+  for (const h of LEAVES) {
+    if (h === "/dashboard") continue; // home matches only exactly
+    if (pathname.startsWith(h + "/") && (!best || h.length > best.length)) best = h;
+  }
+  return best;
 }
 
 function NavLink({
   item,
-  pathname,
+  active,
   onNavigate,
 }: {
   item: Leaf;
-  pathname: string;
+  active: boolean;
   onNavigate?: () => void;
 }) {
-  const active = isActive(pathname, item.href);
   return (
     <Link
       href={item.href}
@@ -60,6 +76,7 @@ function SidebarContent({
   email?: string;
   onNavigate?: () => void;
 }) {
+  const active = activeHref(pathname);
   return (
     <div className="flex h-full flex-col gap-6 p-4">
       <div className="px-3 pt-2 text-lg font-semibold tracking-tight text-black dark:text-zinc-50">
@@ -73,11 +90,11 @@ function SidebarContent({
                 {entry.label}
               </span>
               {entry.items.map((item) => (
-                <NavLink key={item.href} item={item} pathname={pathname} onNavigate={onNavigate} />
+                <NavLink key={item.href} item={item} active={item.href === active} onNavigate={onNavigate} />
               ))}
             </div>
           ) : (
-            <NavLink key={entry.href} item={entry} pathname={pathname} onNavigate={onNavigate} />
+            <NavLink key={entry.href} item={entry} active={entry.href === active} onNavigate={onNavigate} />
           ),
         )}
       </nav>
