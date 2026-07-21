@@ -25,6 +25,13 @@ const ideas: Idea[] = [
     complexity: "Medium",
     timeLift: "~0.5–1 day for a single-device prototype; ~1–2 days with a database and a polished toggle.",
   },
+  {
+    title: "Environment strategy (PRD / POC / SUP / PJX)",
+    description:
+      "Replace localhost with hosted Vercel environments, modeled on Epic. PRD = production (main). POC = a build/playground branch on a stable domain (the localhost replacement). SUP = daily fast-forward copy of prod; PJX = an infrequent copy — both only meaningful once there's a database, since they'd otherwise be identical to prod. Needs Vercel custom environments, per-environment env-var scopes, a Google OAuth redirect URI per domain, scheduled branch-sync (GitHub Action), and eventually branchable data (e.g. Neon).",
+    complexity: "High",
+    timeLift: "~1–2 hrs for POC + PRD alone; ~1–2 days for SUP/PJX with a branchable database and scheduled sync (gated on adding a database first).",
+  },
 ];
 
 const complexityStyles: Record<Complexity, string> = {
