@@ -15,6 +15,7 @@ type Entry = Leaf | Group;
 const NAV: Entry[] = [
   { label: "Home", href: "/dashboard" },
   { label: "Health", items: [{ label: "WHOOP", href: "/dashboard/whoop" }] },
+  { label: "Faith", items: [{ label: "Bible", href: "/dashboard/bible" }] },
   { label: "Notes", href: "/dashboard/notes" },
   { label: "Ideas", href: "/dashboard/ideas" },
   { label: "Settings", href: "/dashboard/settings" },
