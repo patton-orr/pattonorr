@@ -20,7 +20,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // Public: the homepage plus the install/branding assets it references
       // (web manifest and generated icons), so logged-out visitors can add the
       // site to their home screen. Everything else requires the allowed user.
-      const publicPaths = ["/", "/manifest.webmanifest", "/icon", "/apple-icon"];
+      const publicPaths = ["/", "/manifest.webmanifest", "/icon.png", "/apple-icon.png"];
       if (publicPaths.includes(pathname)) return true;
       // The WHOOP cron sync has no session; it's guarded by CRON_SECRET.
       if (pathname === "/api/whoop/sync") return true;
