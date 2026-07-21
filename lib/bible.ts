@@ -201,3 +201,13 @@ export function verseOfTheDay(date = new Date()): string {
   const dayOfYear = Math.floor((today - start) / 86_400_000);
   return DAILY_VERSES[dayOfYear % DAILY_VERSES.length];
 }
+
+// A random verse for the "refresh" affordance on the verse-of-the-day card.
+// `exclude` avoids immediately repeating the verse already on screen.
+export function randomVerse(exclude?: string): string {
+  const pool = exclude
+    ? DAILY_VERSES.filter((v) => v !== exclude)
+    : DAILY_VERSES;
+  const choices = pool.length ? pool : DAILY_VERSES;
+  return choices[Math.floor(Math.random() * choices.length)];
+}
