@@ -1,4 +1,5 @@
 import { VerseOfTheDay } from "./verse-of-the-day";
+import { WeatherCard } from "./weather-card";
 
 // The private area — the 95%. Chrome (sidebar, identity, sign-out) lives in
 // layout.tsx; this is just the Home page content.
@@ -10,6 +11,7 @@ export default function Dashboard() {
       <h1 className="text-2xl font-semibold tracking-tight text-black dark:text-zinc-50">
         Home
       </h1>
+      <WeatherCard />
       <VerseOfTheDay />
     </div>
   );
