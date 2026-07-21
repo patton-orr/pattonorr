@@ -484,7 +484,14 @@ export function SleepStagesChart({
 }: {
   title: string;
   subtitle?: string;
-  data: { date: string; deep: number; light: number; rem: number; awake: number }[];
+  data: {
+    date: string;
+    deep: number;
+    light: number;
+    rem: number;
+    awake: number;
+    missing?: boolean;
+  }[];
   href?: string;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -510,11 +517,12 @@ export function SleepStagesChart({
     );
 
   const totals = data.map((d) => d.deep + d.light + d.rem + d.awake);
-  const max = niceMax(Math.max(...totals), 2);
+  const max = niceMax(Math.max(...totals, 1), 2);
   const bw = Math.min(band * 0.7, 28);
   const y = (v: number) => g.pad.top + (1 - v / max) * g.ph;
   const gridVals = Array.from({ length: 5 }, (_, k) => (max * k) / 4);
   const a = active != null ? data[active] : null;
+  const anyMissing = data.some((d) => d.missing);
 
   return (
     <ChartFrame
@@ -530,6 +538,12 @@ export function SleepStagesChart({
               {s.label}
             </span>
           ))}
+          {anyMissing ? (
+            <span className="flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-400">
+              <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: "var(--rec-red)", opacity: 0.5 }} />
+              No sleep
+            </span>
+          ) : null}
         </div>
       }
     >
@@ -549,9 +563,25 @@ export function SleepStagesChart({
         <XAxisLabels dates={data.map((d) => d.date)} xOf={bandCenter} g={g} />
         {data.map((row, i) => {
           const cx = bandCenter(i);
+          const dim = active == null || active === i ? 1 : 0.45;
+          if (row.missing) {
+            // No sleep recorded: a full-height red bar.
+            return (
+              <rect
+                key={i}
+                x={cx - bw / 2}
+                y={g.pad.top}
+                width={bw}
+                height={g.ph}
+                rx={2}
+                fill="var(--rec-red)"
+                opacity={0.45 * dim}
+              />
+            );
+          }
           let acc = 0;
           return (
-            <g key={i} opacity={active == null || active === i ? 1 : 0.45}>
+            <g key={i} opacity={dim}>
               {STAGES.map((s) => {
                 const v = row[s.key];
                 const yTop = y(acc + v);
@@ -567,11 +597,15 @@ export function SleepStagesChart({
       {a && (
         <div className="tip" style={{ left: `${(bandCenter(active!) / g.W) * 100}%`, top: "8%" }}>
           <strong>{fmtDate(a.date)}</strong>
-          {STAGES.map((s) => (
-            <div key={s.key} style={{ color: "var(--ink2)" }}>
-              {s.label}: {a[s.key].toFixed(1)}h
-            </div>
-          ))}
+          {a.missing ? (
+            <div style={{ color: "var(--ink2)" }}>No sleep recorded</div>
+          ) : (
+            STAGES.map((s) => (
+              <div key={s.key} style={{ color: "var(--ink2)" }}>
+                {s.label}: {a[s.key].toFixed(1)}h
+              </div>
+            ))
+          )}
         </div>
       )}
     </ChartFrame>

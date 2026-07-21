@@ -25,6 +25,7 @@ import {
 } from "../range-toggle";
 import { REC_ZONES } from "../zones-config";
 import { getWhoopSmoothing } from "@/lib/settings";
+import { downsampleSeries } from "@/lib/downsample";
 
 export const dynamic = "force-dynamic";
 
@@ -149,11 +150,12 @@ export default async function MetricDetail({
   if (m === "recovery" || m === "hrv") {
     const trend = await getRecoveryTrend(days);
     const isRec = m === "recovery";
-    const series = trend.map((r) => ({
+    const s = stats(trend.map((r) => (isRec ? r.recovery : r.hrv)));
+    const dsRec = downsampleSeries(trend, ["recovery", "hrv", "rhr"]);
+    const series = dsRec.rows.map((r) => ({
       date: r.date,
       value: isRec ? r.recovery : r.hrv,
     }));
-    const s = stats(series.map((p) => p.value));
     body = (
       <>
         {s && (
@@ -168,7 +170,7 @@ export default async function MetricDetail({
         )}
         <LineChart
           title={TITLES[m]}
-          subtitle={`${rangeLabel(range)} · ${isRec ? "%" : "ms"}`}
+          subtitle={`${rangeLabel(range)}${dsRec.downsampled ? " · weekly avg" : ""} · ${isRec ? "%" : "ms"}`}
           data={series}
           colorVar={isRec ? "--recovery" : "--hrv"}
           unit={isRec ? "%" : "ms"}
@@ -194,17 +196,18 @@ export default async function MetricDetail({
 
   if (m === "sleep") {
     const trend = await getSleepTrend(days);
-    // Stacked bars get unreadable past ~60 nights; chart the most recent 60
-    // and let the table carry the full range.
-    const chartData = trend.slice(-60).map((s) => ({
+    const ds = downsampleSeries(trend, ["deep", "light", "rem", "awake", "performance"]);
+    const chartData = ds.rows.map((s) => ({
       date: s.date,
       deep: s.deep,
       light: s.light,
       rem: s.rem,
       awake: s.awake,
+      missing: ds.downsampled ? false : s.missing,
     }));
-    const totals = trend.map((t) => t.deep + t.light + t.rem);
-    const s = stats(totals);
+    const slept = trend.filter((t) => !t.missing);
+    const s = stats(slept.map((t) => t.deep + t.light + t.rem));
+    const missed = trend.length - slept.length;
     body = (
       <>
         {s && (
@@ -213,18 +216,18 @@ export default async function MetricDetail({
               { label: "Avg asleep", value: num(s.avg, 1) + "h" },
               { label: "Min", value: num(s.min, 1) + "h" },
               { label: "Max", value: num(s.max, 1) + "h" },
-              { label: "Nights", value: String(s.n) },
+              { label: "No-sleep days", value: String(missed) },
             ]}
           />
         )}
         <SleepStagesChart
           title="Sleep stages"
-          subtitle={`${trend.length > 60 ? "Most recent 60 nights" : rangeLabel(range)} · hours`}
+          subtitle={`${rangeLabel(range)}${ds.downsampled ? " · weekly avg" : ""} · hours`}
           data={chartData}
         />
         <DataTable
           head={["Date", "Asleep h", "Deep h", "REM h", "Light h", "Perf %"]}
-          rows={[...trend]
+          rows={[...slept]
             .reverse()
             .map((t) => [
               fmtDate(t.date) ?? t.date,
@@ -242,6 +245,7 @@ export default async function MetricDetail({
   if (m === "strain") {
     const trend = await getStrainTrend(days);
     const s = stats(trend.map((t) => t.strain));
+    const dsStrain = downsampleSeries(trend, ["strain"]);
     body = (
       <>
         {s && (
@@ -256,8 +260,8 @@ export default async function MetricDetail({
         )}
         <BarChart
           title="Day strain"
-          subtitle={`${rangeLabel(range)} · 0–21`}
-          data={trend.map((t) => ({ date: t.date, value: t.strain }))}
+          subtitle={`${rangeLabel(range)}${dsStrain.downsampled ? " · weekly avg" : ""} · 0–21`}
+          data={dsStrain.rows.map((t) => ({ date: t.date, value: t.strain }))}
           colorVar="--strain"
           domainMax={21}
           avgWindow={avg}

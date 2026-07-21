@@ -98,21 +98,43 @@ export type SleepPoint = {
   date: string;
   light: number; deep: number; rem: number; awake: number;
   performance: number | null;
+  missing: boolean;
 };
 
+// A row per calendar day across the range (clamped to the earliest synced
+// sleep), so days with no recorded sleep surface as `missing`.
 export async function getSleepTrend(days = 30): Promise<SleepPoint[]> {
   const sql = getSql();
   const rows = await sql`
-    SELECT to_char(start, 'YYYY-MM-DD') AS date,
-           (total_light_sleep_time_milli / 3600000.0)::float8 AS light,
-           (total_slow_wave_sleep_time_milli / 3600000.0)::float8 AS deep,
-           (total_rem_sleep_time_milli / 3600000.0)::float8 AS rem,
-           (total_awake_time_milli / 3600000.0)::float8 AS awake,
-           sleep_performance_percentage AS performance
-    FROM whoop_sleep
-    WHERE score_state = 'SCORED' AND nap = false
-      AND start >= now() - make_interval(days => ${days})
-    ORDER BY start ASC`;
+    WITH bounds AS (
+      SELECT GREATEST(
+        (date_trunc('day', now()) - make_interval(days => ${days - 1}))::date,
+        COALESCE((SELECT min(start)::date FROM whoop_sleep), CURRENT_DATE)
+      ) AS start_d,
+      date_trunc('day', now())::date AS end_d
+    ),
+    spine AS (
+      SELECT generate_series(
+        (SELECT start_d FROM bounds), (SELECT end_d FROM bounds), interval '1 day'
+      )::date AS d
+    )
+    SELECT to_char(spine.d, 'YYYY-MM-DD') AS date,
+           (s.id IS NULL) AS missing,
+           COALESCE((s.total_light_sleep_time_milli / 3600000.0), 0)::float8 AS light,
+           COALESCE((s.total_slow_wave_sleep_time_milli / 3600000.0), 0)::float8 AS deep,
+           COALESCE((s.total_rem_sleep_time_milli / 3600000.0), 0)::float8 AS rem,
+           COALESCE((s.total_awake_time_milli / 3600000.0), 0)::float8 AS awake,
+           s.sleep_performance_percentage AS performance
+    FROM spine
+    LEFT JOIN LATERAL (
+      SELECT * FROM whoop_sleep w
+      WHERE w.score_state = 'SCORED' AND w.nap = false
+        AND to_char(w.start, 'YYYY-MM-DD') = to_char(spine.d, 'YYYY-MM-DD')
+      ORDER BY (w.total_light_sleep_time_milli + w.total_slow_wave_sleep_time_milli
+                + w.total_rem_sleep_time_milli) DESC NULLS LAST
+      LIMIT 1
+    ) s ON true
+    ORDER BY spine.d ASC`;
   return rows as unknown as SleepPoint[];
 }
 
@@ -142,14 +164,20 @@ export type WorkoutRow = {
   distanceKm: number | null; minutes: number | null;
 };
 
-export async function getRecentWorkouts(limit = 10): Promise<WorkoutRow[]> {
+export async function getRecentWorkouts(
+  limit = 10,
+  days?: number,
+): Promise<WorkoutRow[]> {
   const sql = getSql();
+  const where = days
+    ? sql`WHERE start >= now() - make_interval(days => ${days})`
+    : sql``;
   const rows = await sql`
     SELECT to_char(start, 'YYYY-MM-DD') AS date, sport_name AS sport, strain,
            average_heart_rate AS "avgHr", (kilojoule / 4.184)::float8 AS calories,
            (distance_meter / 1000.0)::float8 AS "distanceKm",
            (extract(epoch FROM ("end" - start)) / 60.0)::float8 AS minutes
-    FROM whoop_workout
+    FROM whoop_workout ${where}
     ORDER BY start DESC LIMIT ${limit}`;
   return rows as unknown as WorkoutRow[];
 }

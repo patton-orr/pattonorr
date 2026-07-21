@@ -20,6 +20,7 @@ import { fmtDate } from "@/lib/format";
 import { AvgToggle, RangeToggle, parseAvg, parseRange, rangeLabel } from "./range-toggle";
 import { REC_ZONES } from "./zones-config";
 import { getWhoopSmoothing } from "@/lib/settings";
+import { downsampleSeries } from "@/lib/downsample";
 
 export const dynamic = "force-dynamic";
 // Governs the syncNow server action too; incremental syncs are quick, and the
@@ -134,28 +135,36 @@ export default async function Whoop({
     );
   }
 
-  const [snapshot, recovery, sleep, strain, zones, workouts, smoothingPct] =
+  const [snapshot, recoveryRaw, sleepRaw, strainRaw, zones, workouts, smoothingPct] =
     await Promise.all([
       getSnapshot(),
       getRecoveryTrend(range),
-      getSleepTrend(21),
+      getSleepTrend(range),
       getStrainTrend(range),
-      getZoneTotals(30),
-      getRecentWorkouts(8),
+      getZoneTotals(range),
+      getRecentWorkouts(8, range),
       getWhoopSmoothing(),
     ]);
   const smoothing = smoothingPct / 100;
 
+  // Long ranges get downsampled so daily marks don't collapse into a smear.
+  const recovery = downsampleSeries(recoveryRaw, ["recovery", "hrv", "rhr"]).rows;
+  const strain = downsampleSeries(strainRaw, ["strain"]).rows;
+  const sleepDs = downsampleSeries(sleepRaw, ["deep", "light", "rem", "awake", "performance"]);
+
   const recoveryLine = recovery.map((r) => ({ date: r.date, value: r.recovery }));
   const hrvLine = recovery.map((r) => ({ date: r.date, value: r.hrv }));
   const strainBars = strain.map((s) => ({ date: s.date, value: s.strain }));
-  const sleepData = sleep.map((s) => ({
+  const sleepData = sleepDs.rows.map((s) => ({
     date: s.date,
     deep: s.deep,
     light: s.light,
     rem: s.rem,
     awake: s.awake,
+    // Missing-night bars only make sense at daily granularity.
+    missing: sleepDs.downsampled ? false : s.missing,
   }));
+  const sleepSubtitle = `${rangeLabel(range)}${sleepDs.downsampled ? " · weekly avg" : ""} · hours`;
 
   const fmt = (v: number | null | undefined, d = 0) =>
     v == null ? "—" : v.toFixed(d);
@@ -173,24 +182,24 @@ export default async function Whoop({
         <Stat label="Resting HR" value={fmt(snapshot.recovery?.rhr, 0)} unit="bpm" />
       </div>
 
-      {/* Trend range + rolling-average window (Recovery, HRV, Day strain) */}
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-        <span className="flex items-center gap-3">
-          <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-            Trends
+      {/* Time range (all cards) + rolling-average window (Recovery, HRV, Strain) */}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-3">
+          <span className="w-12 shrink-0 text-xs font-medium uppercase tracking-wide text-zinc-500">
+            Range
           </span>
           <RangeToggle range={range} avg={avg} />
-        </span>
-        <span className="flex items-center gap-3">
-          <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="w-12 shrink-0 text-xs font-medium uppercase tracking-wide text-zinc-500">
             Avg
           </span>
           <AvgToggle avg={avg} range={range} />
-        </span>
+        </div>
       </div>
 
       {/* Charts */}
-      <div className="whoop-viz grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="whoop-viz flex flex-col gap-4">
         <VizStyles />
         <LineChart
           title="Recovery"
@@ -204,22 +213,29 @@ export default async function Whoop({
           smoothing={smoothing}
           href="/dashboard/whoop/recovery"
         />
-        <LineChart
-          title="Heart rate variability"
-          subtitle={`${rangeLabel(range)} · ms`}
-          data={hrvLine}
-          colorVar="--hrv"
-          unit="ms"
-          avgWindow={avg}
-          smoothing={smoothing}
-          href="/dashboard/whoop/hrv"
-        />
-        <SleepStagesChart
-          title="Sleep stages"
-          subtitle="Last 21 nights · hours"
-          data={sleepData}
-          href="/dashboard/whoop/sleep"
-        />
+        {/* Sleep + HRV — 50/50 */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <SleepStagesChart
+            title="Sleep stages"
+            subtitle={sleepSubtitle}
+            data={sleepData}
+            href="/dashboard/whoop/sleep"
+          />
+          <LineChart
+            title="Heart rate variability"
+            subtitle={`${rangeLabel(range)} · ms`}
+            data={hrvLine}
+            colorVar="--hrv"
+            unit="ms"
+            avgWindow={avg}
+            smoothing={smoothing}
+            href="/dashboard/whoop/hrv"
+          />
+        </div>
+
+        <hr className="my-2 border-black/[.08] dark:border-white/[.145]" />
+
+        {/* Strain / workouts section */}
         <BarChart
           title="Day strain"
           subtitle={`${rangeLabel(range)} · 0–21`}
@@ -230,9 +246,10 @@ export default async function Whoop({
           smoothing={smoothing}
           href="/dashboard/whoop/strain"
         />
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <ZoneBars
           title="Heart-rate zones"
-          subtitle="Time in zone · last 30 days of workouts"
+          subtitle={`Time in zone · ${rangeLabel(range).toLowerCase()}`}
           zones={zones}
           href="/dashboard/whoop/zones"
         />
@@ -278,6 +295,7 @@ export default async function Whoop({
           )}
         </figure>
         </Link>
+        </div>
       </div>
     </div>
   );
