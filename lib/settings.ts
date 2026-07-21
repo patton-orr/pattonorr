@@ -46,7 +46,7 @@ export async function getFaithAutoHighlight(): Promise<boolean> {
 
 export const HOME_SHOW_WEATHER_KEY = "home.showWeather";
 
-// Whether the weather widget shows on the dashboard home. On by default.
+// Whether the weather widget shows on the dashboard home. Off by default.
 export async function getHomeShowWeather(): Promise<boolean> {
-  return getSetting<boolean>(HOME_SHOW_WEATHER_KEY, true);
+  return getSetting<boolean>(HOME_SHOW_WEATHER_KEY, false);
 }
