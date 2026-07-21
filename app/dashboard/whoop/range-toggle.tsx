@@ -29,7 +29,7 @@ const RANGE_LABELS: Record<number, string> = {
 export function parseRange(raw: string | undefined, allowAll = false): number {
   const n = Number(raw);
   if (allowAll && raw === "0") return 0;
-  return RANGES.includes(n) ? n : 90;
+  return RANGES.includes(n) ? n : 30;
 }
 
 export function parseAvg(raw: string | undefined): number {
