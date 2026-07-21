@@ -12,8 +12,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn({ profile }) {
       return profile?.email === ALLOWED_EMAIL;
     },
-    // Used by the proxy (middleware) to gate every matched route.
-    authorized({ auth }) {
+    // Used by the proxy to gate every matched route. Default-deny: only the
+    // public homepage is open; everything else requires the allow-listed user,
+    // so any new page is private unless explicitly listed here.
+    authorized({ auth, request }) {
+      const { pathname } = request.nextUrl;
+      if (pathname === "/") return true;
       return Boolean(auth?.user);
     },
   },
