@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState } from "react";
 import { fmtDate } from "@/lib/format";
 
@@ -100,21 +101,45 @@ function ChartFrame({
   subtitle,
   children,
   footer,
+  href,
 }: {
   title: string;
   subtitle?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  href?: string;
 }) {
-  return (
-    <figure className="m-0 flex flex-col gap-2 rounded-2xl border border-black/[.08] bg-white p-4 dark:border-white/[.145] dark:bg-black">
-      <figcaption className="flex flex-col gap-0.5">
-        <span className="text-sm font-medium text-black dark:text-zinc-50">{title}</span>
-        {subtitle ? <span className="text-xs text-zinc-500">{subtitle}</span> : null}
+  const figure = (
+    <figure
+      className={`m-0 flex flex-col gap-2 rounded-2xl border border-black/[.08] bg-white p-4 transition-colors dark:border-white/[.145] dark:bg-black ${
+        href
+          ? "group-hover:border-black/[.2] dark:group-hover:border-white/[.3]"
+          : ""
+      }`}
+    >
+      <figcaption className="flex items-start justify-between gap-2">
+        <span className="flex flex-col gap-0.5">
+          <span className="text-sm font-medium text-black dark:text-zinc-50">{title}</span>
+          {subtitle ? <span className="text-xs text-zinc-500">{subtitle}</span> : null}
+        </span>
+        {href ? (
+          <span
+            aria-hidden
+            className="text-zinc-300 transition-colors group-hover:text-zinc-500 dark:text-zinc-700 dark:group-hover:text-zinc-400"
+          >
+            ›
+          </span>
+        ) : null}
       </figcaption>
       <div className="relative">{children}</div>
       {footer}
     </figure>
+  );
+  if (!href) return figure;
+  return (
+    <Link href={href} className="group block" aria-label={`${title} details`}>
+      {figure}
+    </Link>
   );
 }
 
@@ -171,6 +196,7 @@ export function LineChart({
   decimals = 0,
   zones,
   average = true,
+  href,
 }: {
   title: string;
   subtitle?: string;
@@ -181,6 +207,7 @@ export function LineChart({
   decimals?: number;
   zones?: Zone[];
   average?: boolean;
+  href?: string;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [active, setActive] = useState<number | null>(null);
@@ -189,7 +216,7 @@ export function LineChart({
 
   if (!present.length)
     return (
-      <ChartFrame title={title} subtitle={subtitle}>
+      <ChartFrame title={title} subtitle={subtitle} href={href}>
         <EmptyNote />
       </ChartFrame>
     );
@@ -239,7 +266,7 @@ export function LineChart({
   const rawOpacity = average ? 0.55 : 1;
 
   return (
-    <ChartFrame title={title} subtitle={subtitle}>
+    <ChartFrame title={title} subtitle={subtitle} href={href}>
       <svg
         ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
@@ -329,17 +356,19 @@ export function SleepStagesChart({
   title,
   subtitle,
   data,
+  href,
 }: {
   title: string;
   subtitle?: string;
   data: { date: string; deep: number; light: number; rem: number; awake: number }[];
+  href?: string;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [active, setActive] = useState<number | null>(null);
 
   if (!data.length)
     return (
-      <ChartFrame title={title} subtitle={subtitle}>
+      <ChartFrame title={title} subtitle={subtitle} href={href}>
         <EmptyNote />
       </ChartFrame>
     );
@@ -372,6 +401,7 @@ export function SleepStagesChart({
     <ChartFrame
       title={title}
       subtitle={subtitle}
+      href={href}
       footer={
         <div className="flex flex-wrap gap-x-4 gap-y-1">
           {STAGES.map((s) => (
@@ -442,6 +472,7 @@ export function BarChart({
   unit = "",
   decimals = 1,
   average = true,
+  href,
 }: {
   title: string;
   subtitle?: string;
@@ -451,6 +482,7 @@ export function BarChart({
   unit?: string;
   decimals?: number;
   average?: boolean;
+  href?: string;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [active, setActive] = useState<number | null>(null);
@@ -459,7 +491,7 @@ export function BarChart({
   const present = vals.filter((v): v is number => v != null);
   if (!present.length)
     return (
-      <ChartFrame title={title} subtitle={subtitle}>
+      <ChartFrame title={title} subtitle={subtitle} href={href}>
         <EmptyNote />
       </ChartFrame>
     );
@@ -491,7 +523,7 @@ export function BarChart({
   const a = active != null ? data[active] : null;
 
   return (
-    <ChartFrame title={title} subtitle={subtitle}>
+    <ChartFrame title={title} subtitle={subtitle} href={href}>
       <svg
         ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
@@ -548,10 +580,12 @@ export function ZoneBars({
   title,
   subtitle,
   zones,
+  href,
 }: {
   title: string;
   subtitle?: string;
   zones: { z0: number; z1: number; z2: number; z3: number; z4: number; z5: number };
+  href?: string;
 }) {
   const items = [
     { label: "Zone 0", min: zones.z0, colorVar: "--z0" },
@@ -566,13 +600,13 @@ export function ZoneBars({
 
   if (total <= 0)
     return (
-      <ChartFrame title={title} subtitle={subtitle}>
+      <ChartFrame title={title} subtitle={subtitle} href={href}>
         <EmptyNote />
       </ChartFrame>
     );
 
   return (
-    <ChartFrame title={title} subtitle={subtitle}>
+    <ChartFrame title={title} subtitle={subtitle} href={href}>
       <div className="flex flex-col gap-2 py-1">
         {items.map((it) => (
           <div key={it.label} className="flex items-center gap-2">

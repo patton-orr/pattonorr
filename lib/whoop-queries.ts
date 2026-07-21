@@ -116,12 +116,20 @@ export async function getSleepTrend(days = 30): Promise<SleepPoint[]> {
   return rows as unknown as SleepPoint[];
 }
 
-export type StrainPoint = { date: string; strain: number | null };
+export type StrainPoint = {
+  date: string;
+  strain: number | null;
+  calories: number | null;
+  avgHr: number | null;
+  maxHr: number | null;
+};
 
 export async function getStrainTrend(days = 30): Promise<StrainPoint[]> {
   const sql = getSql();
   const rows = await sql`
-    SELECT to_char(start, 'YYYY-MM-DD') AS date, strain
+    SELECT to_char(start, 'YYYY-MM-DD') AS date, strain,
+           (kilojoule / 4.184)::float8 AS calories,
+           average_heart_rate AS "avgHr", max_heart_rate AS "maxHr"
     FROM whoop_cycle
     WHERE score_state = 'SCORED' AND start >= now() - make_interval(days => ${days})
     ORDER BY start ASC`;

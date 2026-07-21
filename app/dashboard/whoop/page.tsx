@@ -14,8 +14,11 @@ import {
   BarChart,
   ZoneBars,
 } from "./charts";
+import Link from "next/link";
 import { syncNow } from "./actions";
 import { fmtDate } from "@/lib/format";
+import { RangeToggle, parseRange, rangeLabel } from "./range-toggle";
+import { REC_ZONES } from "./zones-config";
 
 export const dynamic = "force-dynamic";
 // Governs the syncNow server action too; incremental syncs are quick, and the
@@ -27,45 +30,6 @@ const ERRORS: Record<string, string> = {
   state: "The sign-in link expired or didn’t match. Try again.",
   exchange: "Couldn’t complete the WHOOP handshake. Try again.",
 };
-
-// WHOOP recovery zones: red 0–33, yellow 34–66, green 67–100.
-const REC_ZONES = [
-  { min: 67, max: 100, colorVar: "--rec-green" },
-  { min: 34, max: 66, colorVar: "--rec-yellow" },
-  { min: 0, max: 33, colorVar: "--rec-red" },
-];
-
-const RANGES = [30, 90, 365];
-
-function rangeLabel(range: number) {
-  return range === 365 ? "Last year" : `Last ${range} days`;
-}
-
-function RangeToggle({ range }: { range: number }) {
-  const opts = [
-    { v: 30, l: "30d" },
-    { v: 90, l: "90d" },
-    { v: 365, l: "1y" },
-  ];
-  return (
-    <div className="inline-flex rounded-full border border-black/[.1] p-0.5 dark:border-white/[.145]">
-      {opts.map((o) => (
-        <a
-          key={o.v}
-          href={`?range=${o.v}`}
-          aria-current={range === o.v ? "true" : undefined}
-          className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-            range === o.v
-              ? "bg-black/[.06] text-black dark:bg-white/[.1] dark:text-zinc-50"
-              : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
-          }`}
-        >
-          {o.l}
-        </a>
-      ))}
-    </div>
-  );
-}
 
 function Stat({
   label,
@@ -127,7 +91,7 @@ export default async function Whoop({
 }) {
   const sp = await searchParams;
   const error = sp.error;
-  const range = RANGES.includes(Number(sp.range)) ? Number(sp.range) : 90;
+  const range = parseRange(sp.range);
   const status = await getStatus();
 
   if (!status.connected) {
@@ -223,6 +187,7 @@ export default async function Whoop({
           unit="%"
           domain={[0, 100]}
           zones={REC_ZONES}
+          href="/dashboard/whoop/recovery"
         />
         <LineChart
           title="Heart rate variability"
@@ -230,11 +195,13 @@ export default async function Whoop({
           data={hrvLine}
           colorVar="--hrv"
           unit="ms"
+          href="/dashboard/whoop/hrv"
         />
         <SleepStagesChart
           title="Sleep stages"
           subtitle="Last 21 nights · hours"
           data={sleepData}
+          href="/dashboard/whoop/sleep"
         />
         <BarChart
           title="Day strain"
@@ -242,17 +209,25 @@ export default async function Whoop({
           data={strainBars}
           colorVar="--strain"
           domainMax={21}
+          href="/dashboard/whoop/strain"
         />
         <ZoneBars
           title="Heart-rate zones"
           subtitle="Time in zone · last 30 days of workouts"
           zones={zones}
+          href="/dashboard/whoop/zones"
         />
 
         {/* Recent workouts */}
-        <figure className="m-0 flex flex-col gap-2 rounded-2xl border border-black/[.08] bg-white p-4 dark:border-white/[.145] dark:bg-black">
-          <figcaption className="text-sm font-medium text-black dark:text-zinc-50">
-            Recent workouts
+        <Link href="/dashboard/whoop/workouts" className="group block" aria-label="Workouts details">
+        <figure className="m-0 flex flex-col gap-2 rounded-2xl border border-black/[.08] bg-white p-4 transition-colors group-hover:border-black/[.2] dark:border-white/[.145] dark:bg-black dark:group-hover:border-white/[.3]">
+          <figcaption className="flex items-start justify-between gap-2">
+            <span className="text-sm font-medium text-black dark:text-zinc-50">
+              Recent workouts
+            </span>
+            <span aria-hidden className="text-zinc-300 transition-colors group-hover:text-zinc-500 dark:text-zinc-700 dark:group-hover:text-zinc-400">
+              ›
+            </span>
           </figcaption>
           {workouts.length ? (
             <div className="overflow-x-auto">
@@ -283,6 +258,7 @@ export default async function Whoop({
             <p className="py-8 text-center text-sm text-zinc-500">No workouts yet.</p>
           )}
         </figure>
+        </Link>
       </div>
     </div>
   );
