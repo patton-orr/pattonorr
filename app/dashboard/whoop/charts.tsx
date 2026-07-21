@@ -145,6 +145,16 @@ function zoneColor(v: number, zones?: Zone[]) {
   return z ? z.colorVar : null;
 }
 
+// Scale corner-rounding by how many points are on screen. A spline over few,
+// widely-spaced points bulges and buries the day-to-day detail, so short
+// windows get little rounding; it ramps to the user's full setting by ~45+
+// points. Keeps 1–2 week views granular regardless of the smoothing slider.
+function effectiveSmoothing(smoothing: number, n: number) {
+  if (smoothing <= 0) return 0;
+  const scale = Math.max(0.15, Math.min(1, (n - 7) / 40));
+  return smoothing * scale;
+}
+
 // Pointer-events helper: mouse hovers in/out; touch taps or scrubs, and the
 // tooltip sticks after the finger lifts (cleared only by mouse leave).
 function usePointer(
@@ -365,8 +375,9 @@ export function LineChart({
 
   const maVals = average ? rollingAverage(values, avgWindow) : null;
 
-  const raw = linePath(values, xAt, y, smoothing);
-  const ma = maVals ? linePath(maVals, xAt, y, smoothing) : "";
+  const k = effectiveSmoothing(smoothing, n);
+  const raw = linePath(values, xAt, y, k);
+  const ma = maVals ? linePath(maVals, xAt, y, k) : "";
 
   const ticks = 4;
   const gridVals = Array.from({ length: ticks + 1 }, (_, k) => lo + (span * k) / ticks);
@@ -669,7 +680,7 @@ export function BarChart({
   const gridVals = Array.from({ length: 5 }, (_, k) => (max * k) / 4);
 
   const ma = average
-    ? linePath(rollingAverage(vals, avgWindow), bandCenter, y, smoothing)
+    ? linePath(rollingAverage(vals, avgWindow), bandCenter, y, effectiveSmoothing(smoothing, n))
     : "";
   const a = active != null ? data[active] : null;
 

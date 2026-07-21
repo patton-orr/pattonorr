@@ -101,40 +101,25 @@ export type SleepPoint = {
   missing: boolean;
 };
 
-// A row per calendar day across the range (clamped to the earliest synced
-// sleep), so days with no recorded sleep surface as `missing`.
+// One row per WHOOP cycle (day) in range. WHOOP attributes a cycle+recovery to
+// the correct day even for a 2am bedtime, so a day with no scored recovery
+// means no sleep the night before -> `missing`. Sleep stages come from the
+// recovery's own sleep, which fixes the after-midnight attribution problem.
 export async function getSleepTrend(days = 30): Promise<SleepPoint[]> {
   const sql = getSql();
   const rows = await sql`
-    WITH bounds AS (
-      SELECT GREATEST(
-        (date_trunc('day', now()) - make_interval(days => ${days - 1}))::date,
-        COALESCE((SELECT min(start)::date FROM whoop_sleep), CURRENT_DATE)
-      ) AS start_d,
-      date_trunc('day', now())::date AS end_d
-    ),
-    spine AS (
-      SELECT generate_series(
-        (SELECT start_d FROM bounds), (SELECT end_d FROM bounds), interval '1 day'
-      )::date AS d
-    )
-    SELECT to_char(spine.d, 'YYYY-MM-DD') AS date,
-           (s.id IS NULL) AS missing,
-           COALESCE((s.total_light_sleep_time_milli / 3600000.0), 0)::float8 AS light,
-           COALESCE((s.total_slow_wave_sleep_time_milli / 3600000.0), 0)::float8 AS deep,
-           COALESCE((s.total_rem_sleep_time_milli / 3600000.0), 0)::float8 AS rem,
-           COALESCE((s.total_awake_time_milli / 3600000.0), 0)::float8 AS awake,
-           s.sleep_performance_percentage AS performance
-    FROM spine
-    LEFT JOIN LATERAL (
-      SELECT * FROM whoop_sleep w
-      WHERE w.score_state = 'SCORED' AND w.nap = false
-        AND to_char(w.start, 'YYYY-MM-DD') = to_char(spine.d, 'YYYY-MM-DD')
-      ORDER BY (w.total_light_sleep_time_milli + w.total_slow_wave_sleep_time_milli
-                + w.total_rem_sleep_time_milli) DESC NULLS LAST
-      LIMIT 1
-    ) s ON true
-    ORDER BY spine.d ASC`;
+    SELECT to_char(c.start, 'YYYY-MM-DD') AS date,
+           (r.cycle_id IS NULL) AS missing,
+           COALESCE((sl.total_light_sleep_time_milli / 3600000.0), 0)::float8 AS light,
+           COALESCE((sl.total_slow_wave_sleep_time_milli / 3600000.0), 0)::float8 AS deep,
+           COALESCE((sl.total_rem_sleep_time_milli / 3600000.0), 0)::float8 AS rem,
+           COALESCE((sl.total_awake_time_milli / 3600000.0), 0)::float8 AS awake,
+           sl.sleep_performance_percentage AS performance
+    FROM whoop_cycle c
+    LEFT JOIN whoop_recovery r ON r.cycle_id = c.id AND r.score_state = 'SCORED'
+    LEFT JOIN whoop_sleep sl ON sl.id = r.sleep_id
+    WHERE c.start >= now() - make_interval(days => ${days})
+    ORDER BY c.start ASC`;
   return rows as unknown as SleepPoint[];
 }
 
