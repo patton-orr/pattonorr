@@ -17,7 +17,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     // so any new page is private unless explicitly listed here.
     authorized({ auth, request }) {
       const { pathname } = request.nextUrl;
-      if (pathname === "/") return true;
+      // Public: the homepage plus the install/branding assets it references
+      // (web manifest and generated icons), so logged-out visitors can add the
+      // site to their home screen. Everything else requires the allowed user.
+      const publicPaths = ["/", "/manifest.webmanifest", "/icon", "/apple-icon"];
+      if (publicPaths.includes(pathname)) return true;
       return Boolean(auth?.user);
     },
   },
