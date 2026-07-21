@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getBookmarks } from "@/lib/bible";
+import { readerHref } from "@/lib/bible-books";
 import { fmtDate } from "@/lib/format";
 import { removeBookmarkAction } from "../actions";
 
@@ -34,10 +35,7 @@ export default async function SavedPassages() {
               key={b.ref}
               className="flex items-center justify-between gap-3 rounded-xl border border-black/[.08] bg-white p-4 dark:border-white/[.145] dark:bg-black"
             >
-              <Link
-                href={`/dashboard/bible?mode=passage&q=${encodeURIComponent(b.ref)}`}
-                className="flex flex-col gap-0.5"
-              >
+              <Link href={readerHref(b.ref)} className="flex flex-col gap-0.5">
                 <span className="text-sm font-medium text-black dark:text-zinc-50">
                   {b.ref}
                 </span>

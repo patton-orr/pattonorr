@@ -18,7 +18,7 @@ const NAV: Entry[] = [
   {
     label: "Faith",
     items: [
-      { label: "Bible", href: "/dashboard/bible" },
+      { label: "Bible", href: "/bible" },
       { label: "Reading plan", href: "/dashboard/bible/plan" },
       { label: "Saved", href: "/dashboard/bible/saved" },
     ],

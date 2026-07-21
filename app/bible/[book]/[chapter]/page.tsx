@@ -1,0 +1,101 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { BOOKS, bookBySlug, neighbors, refFor } from "@/lib/bible-books";
+import { fetchPassage } from "@/lib/esv";
+import { getBookmarks } from "@/lib/bible";
+import { saveBookmarkAction, removeBookmarkAction } from "@/app/dashboard/bible/actions";
+import { EsvStyles, ESV_COPYRIGHT } from "../../esv-styles";
+import { ChapterPicker } from "../../chapter-picker";
+
+export const dynamic = "force-dynamic";
+
+const BOOKS_LITE = BOOKS.map(({ name, slug, chapters, testament }) => ({
+  name,
+  slug,
+  chapters,
+  testament,
+}));
+
+function NavLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-black/[.04] pointer-coarse:py-2.5 dark:text-zinc-300 dark:hover:bg-white/[.06]"
+    >
+      {children}
+    </Link>
+  );
+}
+
+export default async function Reader({
+  params,
+}: {
+  params: Promise<{ book: string; chapter: string }>;
+}) {
+  const { book: slug, chapter: chStr } = await params;
+  const book = bookBySlug(slug);
+  const chapter = Number(chStr);
+  if (!book || !Number.isInteger(chapter) || chapter < 1 || chapter > book.chapters) {
+    notFound();
+  }
+
+  const ref = refFor(book, chapter);
+  const [passage, bookmarks] = await Promise.all([fetchPassage(ref), getBookmarks()]);
+  const saved = bookmarks.some((b) => b.ref === ref);
+  const { prev, next } = neighbors(slug, chapter);
+
+  return (
+    <div className="flex min-h-dvh flex-col bg-white font-sans dark:bg-black">
+      <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-black/[.06] bg-white/90 px-2 py-2 backdrop-blur dark:border-white/[.1] dark:bg-black/90">
+        <Link
+          href="/dashboard"
+          aria-label="Exit reader"
+          className="rounded-lg p-2 text-zinc-500 transition-colors hover:bg-black/[.05] dark:hover:bg-white/[.08]"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+        </Link>
+
+        <ChapterPicker current={{ slug: book.slug, chapter, label: ref }} books={BOOKS_LITE} />
+
+        <form action={saved ? removeBookmarkAction.bind(null, ref) : saveBookmarkAction.bind(null, ref)}>
+          <button
+            type="submit"
+            aria-label={saved ? "Remove bookmark" : "Save passage"}
+            className={`rounded-lg p-2 text-lg leading-none transition-colors hover:bg-black/[.05] dark:hover:bg-white/[.08] ${
+              saved ? "text-amber-500" : "text-zinc-400"
+            }`}
+          >
+            {saved ? "★" : "☆"}
+          </button>
+        </form>
+      </header>
+
+      <main className="mx-auto w-full max-w-2xl flex-1 px-5 py-8 sm:px-8 sm:py-10">
+        <EsvStyles />
+        <h1 className="mb-6 text-2xl font-semibold tracking-tight text-black dark:text-zinc-50">
+          {ref}
+        </h1>
+        {passage.ok ? (
+          <div className="esv" dangerouslySetInnerHTML={{ __html: passage.html }} />
+        ) : (
+          <p className="text-sm text-rose-600 dark:text-rose-400">{passage.error}</p>
+        )}
+
+        <nav className="mt-10 flex items-center justify-between gap-3 border-t border-black/[.06] pt-6 dark:border-white/[.1]">
+          {prev ? <NavLink href={`/bible/${prev.slug}/${prev.chapter}`}>← {prev.label}</NavLink> : <span />}
+          {next ? <NavLink href={`/bible/${next.slug}/${next.chapter}`}>{next.label} →</NavLink> : <span />}
+        </nav>
+
+        <p className="mt-8 text-xs leading-relaxed text-zinc-400">{ESV_COPYRIGHT}</p>
+      </main>
+    </div>
+  );
+}

@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { PLANS, getPlan, getPlanState } from "@/lib/bible";
+import { readerHref } from "@/lib/bible-books";
 import { setActivePlanAction, togglePlanDayAction } from "../actions";
 
 export const dynamic = "force-dynamic";
 
-const readHref = (ref: string) =>
-  `/dashboard/bible?mode=passage&q=${encodeURIComponent(ref)}`;
+const readHref = (ref: string) => readerHref(ref);
 
 export default async function ReadingPlan() {
   const state = await getPlanState();
