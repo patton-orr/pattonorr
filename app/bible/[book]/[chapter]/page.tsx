@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { BOOKS, bookBySlug, neighbors, refFor } from "@/lib/bible-books";
 import { fetchPassage } from "@/lib/esv";
 import { getBookmarks, getChapterNotes } from "@/lib/bible";
+import { getFaithAutoHighlight } from "@/lib/settings";
 import { saveBookmarkAction, removeBookmarkAction } from "@/app/dashboard/bible/actions";
 import { EsvStyles, ESV_COPYRIGHT } from "../../esv-styles";
 import { ChapterPicker } from "../../chapter-picker";
@@ -47,10 +48,11 @@ export default async function Reader({
   }
 
   const ref = refFor(book, chapter);
-  const [passage, bookmarks, notes] = await Promise.all([
+  const [passage, bookmarks, notes, autoHighlight] = await Promise.all([
     fetchPassage(ref),
     getBookmarks(),
     getChapterNotes(ref),
+    getFaithAutoHighlight(),
   ]);
   const saved = bookmarks.some((b) => b.ref === ref);
   const { prev, next } = neighbors(slug, chapter);
@@ -106,6 +108,7 @@ export default async function Reader({
             html={passage.html}
             initialHighlights={notes.highlights}
             initialReflection={notes.reflection}
+            autoHighlight={autoHighlight}
           />
         ) : (
           <p className="text-sm text-rose-600 dark:text-rose-400">{passage.error}</p>

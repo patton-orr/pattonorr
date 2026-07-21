@@ -31,3 +31,22 @@ export async function getWhoopSmoothing(): Promise<number> {
   const v = await getSetting<number>(WHOOP_SMOOTHING_KEY, WHOOP_SMOOTHING_DEFAULT);
   return Math.max(0, Math.min(100, Number(v) || 0));
 }
+
+// --- Faith / Bible reader preferences ---
+
+export const FAITH_AUTO_HIGHLIGHT_KEY = "faith.autoHighlight";
+
+// When on, selecting text in the reader creates a highlight immediately with
+// the default color — no color-picker confirm. Off by default.
+export async function getFaithAutoHighlight(): Promise<boolean> {
+  return getSetting<boolean>(FAITH_AUTO_HIGHLIGHT_KEY, false);
+}
+
+// --- Home preferences ---
+
+export const HOME_SHOW_WEATHER_KEY = "home.showWeather";
+
+// Whether the weather widget shows on the dashboard home. On by default.
+export async function getHomeShowWeather(): Promise<boolean> {
+  return getSetting<boolean>(HOME_SHOW_WEATHER_KEY, true);
+}

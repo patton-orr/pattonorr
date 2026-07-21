@@ -23,6 +23,10 @@ const COLORS: { key: HighlightColor; swatch: string }[] = [
   { key: "pink", swatch: "var(--hl-pink)" },
 ];
 
+// The color applied when "auto-highlight" is on and a selection is confirmed
+// without picking a color.
+const AUTO_HIGHLIGHT_COLOR: HighlightColor = "yellow";
+
 // --- Offset helpers -------------------------------------------------------
 // Highlights are anchored by character offset into the chapter's text. The
 // coordinate space is "the concatenated data of every Text node in document
@@ -89,6 +93,24 @@ function applyHighlight(root: HTMLElement, hl: Highlight) {
   }
 }
 
+// Read the current selection as character offsets into the passage. Returns
+// null when there's nothing usable (collapsed, outside the passage, or empty).
+function readSelection(
+  root: HTMLElement | null,
+): { start: number; end: number; quote: string } | null {
+  const sel = typeof window !== "undefined" ? window.getSelection() : null;
+  if (!root || !sel || sel.rangeCount === 0 || sel.isCollapsed) return null;
+  const range = sel.getRangeAt(0);
+  if (!root.contains(range.commonAncestorContainer)) return null;
+  const quote = sel.toString().replace(/\s+/g, " ").trim();
+  if (!quote) return null;
+  let s = textOffset(root, range.startContainer, range.startOffset);
+  let e = textOffset(root, range.endContainer, range.endOffset);
+  if (s > e) [s, e] = [e, s];
+  if (e <= s) return null;
+  return { start: s, end: e, quote };
+}
+
 type Toolbar = {
   start: number;
   end: number;
@@ -103,11 +125,13 @@ export function ReaderContent({
   html,
   initialHighlights,
   initialReflection,
+  autoHighlight,
 }: {
   refLabel: string;
   html: string;
   initialHighlights: Highlight[];
   initialReflection: string;
+  autoHighlight: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [highlights, setHighlights] = useState<Highlight[]>(() =>
@@ -149,34 +173,25 @@ export function ReaderContent({
       typeof window !== "undefined" &&
       window.matchMedia?.("(pointer: coarse)").matches;
     function onSelect() {
-      const root = containerRef.current;
-      const sel = window.getSelection();
-      if (!root || !sel || sel.rangeCount === 0 || sel.isCollapsed) {
+      // In auto-highlight mode the toolbar never appears — a selection becomes
+      // a highlight on pointer release (see the effect below).
+      if (autoHighlight) {
         setToolbar(null);
         return;
       }
-      const range = sel.getRangeAt(0);
-      if (!root.contains(range.commonAncestorContainer)) {
+      const info = readSelection(containerRef.current);
+      if (!info) {
         setToolbar(null);
         return;
       }
-      const quote = sel.toString().replace(/\s+/g, " ").trim();
-      if (!quote) {
-        setToolbar(null);
-        return;
-      }
-      let s = textOffset(root, range.startContainer, range.startOffset);
-      let e = textOffset(root, range.endContainer, range.endOffset);
-      if (s > e) [s, e] = [e, s];
-      if (e <= s) {
-        setToolbar(null);
-        return;
-      }
-      const rect = range.getBoundingClientRect();
+      const rect = window
+        .getSelection()!
+        .getRangeAt(0)
+        .getBoundingClientRect();
       setToolbar({
-        start: s,
-        end: e,
-        quote,
+        start: info.start,
+        end: info.end,
+        quote: info.quote,
         x: rect.left + rect.width / 2,
         y: coarse ? rect.bottom + 12 : rect.top - 12,
         below: !!coarse,
@@ -184,7 +199,7 @@ export function ReaderContent({
     }
     document.addEventListener("selectionchange", onSelect);
     return () => document.removeEventListener("selectionchange", onSelect);
-  }, []);
+  }, [autoHighlight]);
 
   // A stale toolbar (fixed viewport coords) should vanish on scroll.
   useEffect(() => {
@@ -194,15 +209,39 @@ export function ReaderContent({
     return () => window.removeEventListener("scroll", clear, true);
   }, [toolbar]);
 
+  // Auto-highlight: when enabled, a finished selection becomes a highlight on
+  // pointer release — no toolbar, no color to confirm. It listens on release
+  // (not selectionchange) so it fires once, after the selection is final.
+  useEffect(() => {
+    if (!autoHighlight) return;
+    function onRelease() {
+      // Defer a tick so the browser has settled the final selection.
+      setTimeout(() => {
+        const info = readSelection(containerRef.current);
+        if (info) createHighlightFrom(info, AUTO_HIGHLIGHT_COLOR, false);
+      }, 0);
+    }
+    document.addEventListener("mouseup", onRelease);
+    document.addEventListener("touchend", onRelease);
+    return () => {
+      document.removeEventListener("mouseup", onRelease);
+      document.removeEventListener("touchend", onRelease);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoHighlight, highlights, isWide]);
+
   function clearSelection() {
     window.getSelection()?.removeAllRanges();
     setToolbar(null);
   }
 
-  function createHighlight(color: HighlightColor, openNote: boolean) {
-    if (!toolbar) return;
+  function createHighlightFrom(
+    sel: { start: number; end: number; quote: string },
+    color: HighlightColor,
+    openNote: boolean,
+  ) {
     const overlap = highlights.find(
-      (h) => toolbar.start < h.end && toolbar.end > h.start,
+      (h) => sel.start < h.end && sel.end > h.start,
     );
     if (overlap) {
       clearSelection();
@@ -211,9 +250,9 @@ export function ReaderContent({
     }
     const hl: Highlight = {
       id: crypto.randomUUID(),
-      start: toolbar.start,
-      end: toolbar.end,
-      quote: toolbar.quote.slice(0, 300),
+      start: sel.start,
+      end: sel.end,
+      quote: sel.quote.slice(0, 300),
       color,
       note: "",
       createdAt: new Date().toISOString(),
@@ -224,6 +263,15 @@ export function ReaderContent({
     });
     clearSelection();
     if (openNote) openHighlight(hl.id);
+  }
+
+  function createHighlight(color: HighlightColor, openNote: boolean) {
+    if (!toolbar) return;
+    createHighlightFrom(
+      { start: toolbar.start, end: toolbar.end, quote: toolbar.quote },
+      color,
+      openNote,
+    );
   }
 
   function commitNote(id: string, note: string) {
