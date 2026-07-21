@@ -17,12 +17,12 @@ import {
 import { fmtDate } from "@/lib/format";
 import {
   AvgToggle,
-  RangeToggle,
   parseAvg,
   parseRange,
   rangeDays,
   rangeLabel,
 } from "../range-toggle";
+import { RangeSlider } from "../range-slider";
 import { REC_ZONES } from "../zones-config";
 import { getWhoopSmoothing } from "@/lib/settings";
 import { downsampleSeries } from "@/lib/downsample";
@@ -324,7 +324,7 @@ export default async function MetricDetail({
   return (
     <div className="whoop-viz flex flex-col gap-6">
       <VizStyles />
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
           <Link
             href="/dashboard/whoop"
@@ -337,21 +337,26 @@ export default async function MetricDetail({
           </h1>
         </div>
         {m !== "workouts" ? (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                Range
+              </span>
+              <RangeSlider
+                range={range}
+                avg={hasAvg ? avg : undefined}
+                basePath={basePath}
+                showAll
+              />
+            </div>
             {hasAvg ? (
-              <span className="flex items-center gap-2">
-                <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                <span className="text-xs font-medium uppercase tracking-wide text-zinc-500 sm:w-12">
                   Avg
                 </span>
                 <AvgToggle avg={avg} range={range} basePath={basePath} />
-              </span>
+              </div>
             ) : null}
-            <RangeToggle
-              range={range}
-              avg={hasAvg ? avg : undefined}
-              basePath={basePath}
-              showAll
-            />
           </div>
         ) : null}
       </div>

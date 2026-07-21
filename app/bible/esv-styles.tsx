@@ -1,47 +1,11 @@
-// Reader theme + typography for the immersive Bible reader.
-//
-// A warm "paper" (sepia) palette is centralized as CSS variables on
-// `.reader-shell` — one place to tune, with a warm-dark variant for dark mode.
-// The ESV HTML (verse numbers, headings, poetry) and note highlights are styled
-// against those variables so the whole reader reads as one surface.
+// Typography for the immersive Bible reader's scripture body (serif, poetry,
+// verse numbers, note highlights). The warm "paper" palette itself lives in
+// globals.css as `.faith-theme` (shared with the Faith dashboard pages); these
+// rules just consume those --reader-* / --hl-* variables from a .faith-theme
+// ancestor (the reader root carries the class).
 export function EsvStyles() {
   return (
     <style>{`
-      .reader-shell {
-        --reader-bg: #f7f1e3;
-        --reader-surface: #f2ead9;
-        --reader-fg: #37322a;
-        --reader-muted: #9a8f79;
-        --reader-heading: #857a5f;
-        --reader-border: rgba(63,50,26,.13);
-        --reader-accent: #9c6b3d;
-        --hl-yellow: rgba(240,196,70,.42);
-        --hl-green: rgba(150,198,110,.40);
-        --hl-blue: rgba(120,170,224,.38);
-        --hl-pink: rgba(233,138,166,.40);
-        /* Scripture reads in a warm old-style serif. On Apple devices this is
-           Iowan Old Style (the face Apple Books uses for immersive reading);
-           Palatino Linotype on Windows; Georgia as a broad fallback. Named
-           faces (not ui-serif) so desktop Chrome can't resolve to Times. The
-           notes/UI stay on --font-geist-sans. */
-        --reader-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Charter, Georgia, serif;
-      }
-      @media (prefers-color-scheme: dark) {
-        .reader-shell {
-          --reader-bg: #17140f;
-          --reader-surface: #1c1811;
-          --reader-fg: #e7ddca;
-          --reader-muted: #948a74;
-          --reader-heading: #b6a684;
-          --reader-border: rgba(233,219,186,.13);
-          --reader-accent: #cf9f68;
-          --hl-yellow: rgba(214,178,74,.36);
-          --hl-green: rgba(138,190,120,.32);
-          --hl-blue: rgba(128,170,224,.32);
-          --hl-pink: rgba(222,140,170,.32);
-        }
-      }
-
       .esv {
         font-family: var(--reader-serif);
         line-height: 1.85; color: var(--reader-fg); font-size: 1.05rem; }

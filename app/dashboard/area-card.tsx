@@ -12,7 +12,7 @@ export function AreaCard({
   return (
     <Link
       href={href}
-      className="group flex flex-col gap-1 rounded-2xl border border-black/[.08] bg-white p-5 transition-colors hover:border-black/[.2] dark:border-white/[.145] dark:bg-black dark:hover:border-white/[.3]"
+      className="group flex flex-col gap-1 rounded-2xl border border-[color:var(--faith-card-border)] bg-[var(--faith-card)] p-5 transition-colors hover:border-black/[.2] dark:hover:border-white/[.3]"
     >
       <span className="flex items-center gap-1 text-base font-medium text-black dark:text-zinc-50">
         {title}

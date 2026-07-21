@@ -24,3 +24,50 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Faith theme — a warm "paper" surface shared by everything faith-based (the
+   Bible reader + the Faith dashboard pages + the verse-of-the-day card). The
+   sepia is deliberately restrained (~40% less than the original). `.faith-theme`
+   only scopes the tokens; pages/cards opt in via the vars below, so a card is
+   neutral off-faith and warm on-faith without per-context overrides. */
+:root {
+  --faith-card: #ffffff;
+  --faith-card-border: rgba(0, 0, 0, 0.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --faith-card: #0a0a0a;
+    --faith-card-border: rgba(255, 255, 255, 0.145);
+  }
+}
+.faith-theme {
+  --reader-bg: #f4f0e8;
+  --reader-surface: #eee9df;
+  --reader-fg: #35322d;
+  --reader-muted: #948e80;
+  --reader-heading: #7e7868;
+  --reader-border: rgba(56, 49, 34, 0.13);
+  --reader-accent: #896b50;
+  --hl-yellow: rgba(240, 196, 70, 0.42);
+  --hl-green: rgba(150, 198, 110, 0.4);
+  --hl-blue: rgba(120, 170, 224, 0.38);
+  --hl-pink: rgba(233, 138, 166, 0.4);
+  --reader-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Charter, Georgia, serif;
+  --faith-card: var(--reader-surface);
+  --faith-card-border: var(--reader-border);
+}
+@media (prefers-color-scheme: dark) {
+  .faith-theme {
+    --reader-bg: #161411;
+    --reader-surface: #1a1813;
+    --reader-fg: #e2dcd0;
+    --reader-muted: #8e887b;
+    --reader-heading: #ada48f;
+    --reader-border: rgba(225, 216, 197, 0.13);
+    --reader-accent: #bb9e7d;
+    --hl-yellow: rgba(214, 178, 74, 0.36);
+    --hl-green: rgba(138, 190, 120, 0.32);
+    --hl-blue: rgba(128, 170, 224, 0.32);
+    --hl-pink: rgba(222, 140, 170, 0.32);
+  }
+}

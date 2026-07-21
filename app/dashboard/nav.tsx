@@ -93,9 +93,13 @@ function SidebarContent({
   const active = activeHref(pathname);
   return (
     <div className="flex h-full flex-col gap-6 p-4">
-      <div className="px-3 pt-2 text-lg font-semibold tracking-tight text-black dark:text-zinc-50">
+      <Link
+        href="/dashboard"
+        onClick={onNavigate}
+        className="w-fit px-3 pt-2 text-lg font-semibold tracking-tight text-black transition-opacity hover:opacity-70 dark:text-zinc-50"
+      >
         Patton Orr
-      </div>
+      </Link>
       <nav className="flex flex-col gap-1">
         {NAV.map((entry) =>
           isGroup(entry) ? (
@@ -218,9 +222,12 @@ export function DashboardNav({ email }: { email?: string }) {
             <path d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
-        <span className="text-sm font-semibold text-black dark:text-zinc-50">
+        <Link
+          href="/dashboard"
+          className="text-sm font-semibold text-black transition-opacity hover:opacity-70 dark:text-zinc-50"
+        >
           Patton Orr
-        </span>
+        </Link>
       </div>
 
       {/* Persistent sidebar (tablet + desktop) */}

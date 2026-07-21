@@ -57,7 +57,7 @@ export default async function Reader({
 
   return (
     <div
-      className="reader-shell flex min-h-dvh flex-col font-sans"
+      className="faith-theme flex min-h-dvh flex-col font-sans"
       style={{ background: "var(--reader-bg)", color: "var(--reader-fg)" }}
     >
       <header

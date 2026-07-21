@@ -28,7 +28,7 @@ export default async function ReadingPlan() {
           {PLANS.map((p) => (
             <div
               key={p.id}
-              className="flex items-center justify-between gap-4 rounded-2xl border border-black/[.08] bg-white p-5 dark:border-white/[.145] dark:bg-black"
+              className="flex items-center justify-between gap-4 rounded-2xl border border-[color:var(--faith-card-border)] bg-[var(--faith-card)] p-5"
             >
               <div className="flex flex-col gap-1">
                 <span className="font-medium text-black dark:text-zinc-50">{p.title}</span>
@@ -67,7 +67,7 @@ function ActivePlan({
   return (
     <div className="flex flex-col gap-6">
       {/* Progress */}
-      <div className="flex flex-col gap-3 rounded-2xl border border-black/[.08] bg-white p-5 dark:border-white/[.145] dark:bg-black">
+      <div className="flex flex-col gap-3 rounded-2xl border border-[color:var(--faith-card-border)] bg-[var(--faith-card)] p-5">
         <div className="flex items-baseline justify-between gap-3">
           <span className="font-medium text-black dark:text-zinc-50">{plan.title}</span>
           <span className="text-sm text-zinc-500 tabular-nums">
@@ -89,11 +89,11 @@ function ActivePlan({
 
       {/* Up next */}
       {nextIdx === -1 ? (
-        <p className="rounded-2xl border border-black/[.08] bg-white p-5 text-sm text-emerald-700 dark:border-white/[.145] dark:bg-black dark:text-emerald-400">
+        <p className="rounded-2xl border border-[color:var(--faith-card-border)] bg-[var(--faith-card)] p-5 text-sm text-emerald-700 dark:text-emerald-400">
           🎉 Plan complete — well done.
         </p>
       ) : (
-        <div className="flex items-center justify-between gap-4 rounded-2xl border border-black/[.08] bg-white p-5 dark:border-white/[.145] dark:bg-black">
+        <div className="flex items-center justify-between gap-4 rounded-2xl border border-[color:var(--faith-card-border)] bg-[var(--faith-card)] p-5">
           <div className="flex flex-col gap-1">
             <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">
               Up next · day {nextIdx + 1}

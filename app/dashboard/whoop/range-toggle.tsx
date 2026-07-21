@@ -59,7 +59,7 @@ function Pill({
     <a
       href={href}
       aria-current={current ? "true" : undefined}
-      className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors pointer-coarse:px-3.5 pointer-coarse:py-2 ${
+      className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-medium transition-colors pointer-coarse:min-h-11 pointer-coarse:px-3.5 pointer-coarse:py-2 ${
         current
           ? "bg-black text-white dark:bg-white dark:text-black"
           : "bg-black/[.05] text-zinc-600 hover:bg-black/[.09] dark:bg-white/[.08] dark:text-zinc-300 dark:hover:bg-white/[.14]"

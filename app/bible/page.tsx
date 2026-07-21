@@ -43,9 +43,15 @@ export default async function BibleHome({
   const search = query ? await searchPassages(query) : null;
 
   return (
-    <div className="flex min-h-dvh flex-col bg-white font-sans dark:bg-black">
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-black/[.06] bg-white/90 px-4 py-3 backdrop-blur dark:border-white/[.1] dark:bg-black/90">
-        <span className="text-lg font-semibold tracking-tight text-black dark:text-zinc-50">
+    <div
+      className="faith-theme flex min-h-dvh flex-col font-sans"
+      style={{ background: "var(--reader-bg)", color: "var(--reader-fg)" }}
+    >
+      <header
+        className="sticky top-0 z-30 flex items-center justify-between border-b px-4 py-3"
+        style={{ background: "var(--reader-surface)", borderColor: "var(--reader-border)" }}
+      >
+        <span className="text-lg font-semibold tracking-tight" style={{ color: "var(--reader-fg)" }}>
           Bible
         </span>
         <Link
@@ -64,7 +70,7 @@ export default async function BibleHome({
             defaultValue={query}
             autoComplete="off"
             placeholder="Search the ESV…"
-            className="flex-1 rounded-full border border-black/[.12] bg-white px-4 py-2.5 text-sm text-black outline-none transition-colors focus:border-black/[.35] dark:border-white/[.18] dark:bg-black dark:text-zinc-50 dark:focus:border-white/[.4]"
+            className="flex-1 rounded-full border border-[color:var(--reader-border)] bg-[var(--reader-surface)] px-4 py-2.5 text-sm text-[color:var(--reader-fg)] outline-none transition-colors focus:border-black/[.35] dark:focus:border-white/[.4]"
           />
           <button
             type="submit"
@@ -92,12 +98,12 @@ export default async function BibleHome({
               <Link
                 key={r.reference}
                 href={readerHref(r.reference)}
-                className="flex flex-col gap-1 rounded-xl border border-black/[.08] bg-white p-4 transition-colors hover:border-black/[.2] dark:border-white/[.145] dark:bg-black dark:hover:border-white/[.3]"
+                className="flex flex-col gap-1 rounded-xl border border-[color:var(--faith-card-border)] bg-[var(--faith-card)] p-4 transition-colors hover:border-black/[.2] dark:hover:border-white/[.3]"
               >
-                <span className="text-sm font-medium text-black dark:text-zinc-50">
+                <span className="text-sm font-medium" style={{ color: "var(--reader-fg)" }}>
                   {r.reference}
                 </span>
-                <span className="text-sm text-zinc-600 dark:text-zinc-400">
+                <span className="text-sm" style={{ color: "var(--reader-muted)" }}>
                   {r.content}
                 </span>
               </Link>

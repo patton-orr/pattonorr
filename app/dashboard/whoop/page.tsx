@@ -17,7 +17,8 @@ import {
 import Link from "next/link";
 import { syncNow } from "./actions";
 import { fmtDate } from "@/lib/format";
-import { AvgToggle, RangeToggle, parseAvg, parseRange, rangeLabel } from "./range-toggle";
+import { AvgToggle, parseAvg, parseRange, rangeLabel } from "./range-toggle";
+import { RangeSlider } from "./range-slider";
 import { REC_ZONES } from "./zones-config";
 import { getWhoopSmoothing } from "@/lib/settings";
 import { downsampleSeries } from "@/lib/downsample";
@@ -183,15 +184,15 @@ export default async function Whoop({
       </div>
 
       {/* Time range (all cards) + rolling-average window (Recovery, HRV, Strain) */}
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-3">
-          <span className="w-12 shrink-0 text-xs font-medium uppercase tracking-wide text-zinc-500">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2">
+          <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">
             Range
           </span>
-          <RangeToggle range={range} avg={avg} />
+          <RangeSlider range={range} avg={avg} />
         </div>
-        <div className="flex items-center gap-3">
-          <span className="w-12 shrink-0 text-xs font-medium uppercase tracking-wide text-zinc-500">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+          <span className="text-xs font-medium uppercase tracking-wide text-zinc-500 sm:w-12">
             Avg
           </span>
           <AvgToggle avg={avg} range={range} />

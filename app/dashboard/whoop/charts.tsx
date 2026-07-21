@@ -34,10 +34,17 @@ function useGeom() {
     return () => ro.disconnect();
   }, []);
 
-  // s = how much the viewBox is scaled down on screen; scale text/pads by it
-  // so they render at roughly constant CSS px. Capped at 2 (a 360px phone).
+  // s = geometry scale (padding, stroke widths, dot radii). Clamped to >= 1,
+  // which is right for layout but WRONG for text: on containers wider than
+  // BASE_W it pins at 1 and viewBox-unit fonts balloon (10 units -> ~15px on a
+  // 1000px desktop). So size text off `fontPx` instead: since 1 viewBox unit
+  // renders at r = w/BASE_W CSS px, fontPx(px) = px/r renders at exactly px CSS
+  // at ANY width. Axis labels stay a constant 11px (12px on phones).
   const s = Math.min(2, Math.max(1, BASE_W / Math.max(w, 1)));
   const narrow = w < 480;
+  const r = Math.max(w, 1) / BASE_W;
+  const fontPx = (px: number) => px / r;
+  const axisPx = narrow ? 12 : 11;
   const H = s > 1.4 ? 300 : 240; // taller aspect on phones
   const pad = {
     top: 16,
@@ -49,6 +56,9 @@ function useGeom() {
     measureRef,
     s,
     narrow,
+    r,
+    fontPx,
+    axisPx,
     W: BASE_W,
     H,
     pad,
@@ -85,7 +95,8 @@ export function VizStyles() {
         position:absolute; pointer-events:none; z-index:10; transform:translate(-50%,-100%);
         background:var(--surface); color:var(--ink);
         border:1px solid rgba(128,128,128,0.25); border-radius:8px;
-        padding:6px 8px; font-size:12px; line-height:1.35; white-space:nowrap;
+        padding:6px 8px; font-size:12px; line-height:1.35;
+        max-width:168px; white-space:normal;
         box-shadow:0 4px 12px rgba(0,0,0,0.12);
       }
     `}</style>
@@ -264,9 +275,9 @@ function XAxisLabels({
           <text
             key={i}
             x={xOf(i)}
-            y={g.H - 6 * g.s}
+            y={g.H - g.fontPx(6)}
             textAnchor={anchor}
-            fontSize={10 * g.s}
+            fontSize={g.fontPx(g.axisPx)}
             fill="var(--muted)"
           >
             {label}
@@ -301,10 +312,10 @@ function YGrid({
             strokeWidth={1}
           />
           <text
-            x={g.pad.left - 6}
-            y={y(gv) + 3.5 * g.s}
+            x={g.pad.left - g.fontPx(6)}
+            y={y(gv) + g.fontPx(4)}
             textAnchor="end"
-            fontSize={11 * g.s}
+            fontSize={g.fontPx(g.axisPx)}
             fill="var(--muted)"
           >
             {format ? format(gv) : Math.round(gv)}
@@ -394,12 +405,24 @@ export function LineChart({
 
   const activePt = active != null ? data[active] : null;
   const showTip = activePt != null && activePt.value != null;
+  // Keep the tooltip inside the chart: clamp its x, and flip it below the point
+  // when the point sits near the top (otherwise it clips off the top edge).
+  const tipTop = showTip ? (y(activePt!.value as number) / g.H) * 100 : 0;
+  const tipLeft = showTip
+    ? Math.min(92, Math.max(8, (xAt(active!) / g.W) * 100))
+    : 0;
+  const tipBelow = tipTop < 22;
   const scaleW = Math.min(g.s, 1.4);
-  // The rolling average is the headline stat: 25% heavier than a plain line,
-  // with the raw day-to-day series receding behind it.
+  // The dark rolling average is the headline. When it's drawn, the raw
+  // day-to-day line recedes behind it — thinner, half-opacity, and dashed — so
+  // the noisy daily detail reads as texture. When there's no average (few
+  // points), the raw line stays the solid, confident headline.
+  const overlay = average && ma !== "";
   const avgWidth = 2.5 * scaleW;
-  const rawWidth = average ? 1.5 * scaleW : 2 * scaleW;
-  const rawOpacity = average ? 0.55 : 1;
+  const rawWidth = overlay ? 1.25 * scaleW : 2 * scaleW;
+  const rawOpacity = overlay ? 0.5 : 1;
+  const rawDash = overlay ? `${4 * scaleW} ${3 * scaleW}` : undefined;
+  const rawCap = overlay ? "butt" : "round";
 
   return (
     <ChartFrame title={title} subtitle={subtitle} href={href} measureRef={g.measureRef}>
@@ -430,7 +453,7 @@ export function LineChart({
           </clipPath>
         </defs>
         <g clipPath={`url(#${clipId})`}>
-          <path d={raw} fill="none" stroke={`var(${colorVar})`} strokeWidth={rawWidth} strokeOpacity={rawOpacity} strokeLinejoin="round" strokeLinecap="round" />
+          <path d={raw} fill="none" stroke={`var(${colorVar})`} strokeWidth={rawWidth} strokeOpacity={rawOpacity} strokeDasharray={rawDash} strokeLinejoin="round" strokeLinecap={rawCap} />
           {isolated.map((p) => (
             <circle
               key={`iso-${p.i}`}
@@ -462,8 +485,9 @@ export function LineChart({
         <div
           className="tip"
           style={{
-            left: `${(xAt(active!) / g.W) * 100}%`,
-            top: `${(y(activePt!.value as number) / g.H) * 100}%`,
+            left: `${tipLeft}%`,
+            top: `${tipTop}%`,
+            transform: tipBelow ? "translate(-50%, 8px)" : undefined,
           }}
         >
           <strong>
@@ -606,7 +630,14 @@ export function SleepStagesChart({
         })}
       </svg>
       {a && (
-        <div className="tip" style={{ left: `${(bandCenter(active!) / g.W) * 100}%`, top: "8%" }}>
+        <div
+          className="tip"
+          style={{
+            left: `${Math.min(92, Math.max(8, (bandCenter(active!) / g.W) * 100))}%`,
+            top: "8%",
+            transform: "translate(-50%, 0)",
+          }}
+        >
           <strong>{fmtDate(a.date)}</strong>
           {a.missing ? (
             <div style={{ color: "var(--ink2)" }}>No sleep recorded</div>
@@ -715,7 +746,14 @@ export function BarChart({
         {ma && <path d={ma} fill="none" stroke="var(--avg)" strokeWidth={2.5 * Math.min(g.s, 1.4)} strokeLinejoin="round" strokeLinecap="round" />}
       </svg>
       {a && a.value != null && (
-        <div className="tip" style={{ left: `${(bandCenter(active!) / g.W) * 100}%`, top: `${(y(a.value) / g.H) * 100}%` }}>
+        <div
+          className="tip"
+          style={{
+            left: `${Math.min(92, Math.max(8, (bandCenter(active!) / g.W) * 100))}%`,
+            top: `${(y(a.value) / g.H) * 100}%`,
+            transform: (y(a.value) / g.H) * 100 < 22 ? "translate(-50%, 8px)" : undefined,
+          }}
+        >
           <strong>
             {a.value.toFixed(decimals)}
             {unit}
