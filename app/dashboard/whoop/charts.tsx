@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { fmtDate } from "@/lib/format";
 
 // Hand-rolled SVG charts following the dataviz mark specs: 2px lines, rounded
 // data-ends, recessive grid/axes, 2px gaps between stacked segments, crosshair
@@ -138,8 +139,8 @@ function XAxisLabels({
   return (
     <>
       {idxs.map((i, k) => {
-        const parts = dates[i]?.split("-");
-        if (!parts) return null;
+        const label = fmtDate(dates[i]);
+        if (!label) return null;
         const anchor = k === 0 ? "start" : k === count - 1 ? "end" : "middle";
         return (
           <text
@@ -150,7 +151,7 @@ function XAxisLabels({
             fontSize={10}
             fill="var(--muted)"
           >
-            {`${+parts[1]}/${+parts[2]}`}
+            {label}
           </text>
         );
       })}
@@ -308,7 +309,7 @@ export function LineChart({
             {unit}
           </strong>
           <br />
-          <span style={{ color: "var(--ink2)" }}>{activePt!.date}</span>
+          <span style={{ color: "var(--ink2)" }}>{fmtDate(activePt!.date)}</span>
         </div>
       )}
     </ChartFrame>
@@ -418,7 +419,7 @@ export function SleepStagesChart({
       </svg>
       {a && (
         <div className="tip" style={{ left: `${(bandCenter(active!) / W) * 100}%`, top: "8%" }}>
-          <strong>{a.date}</strong>
+          <strong>{fmtDate(a.date)}</strong>
           {STAGES.map((s) => (
             <div key={s.key} style={{ color: "var(--ink2)" }}>
               {s.label}: {a[s.key].toFixed(1)}h
@@ -534,7 +535,7 @@ export function BarChart({
             {unit}
           </strong>
           <br />
-          <span style={{ color: "var(--ink2)" }}>{a.date}</span>
+          <span style={{ color: "var(--ink2)" }}>{fmtDate(a.date)}</span>
         </div>
       )}
     </ChartFrame>

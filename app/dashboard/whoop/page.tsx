@@ -15,6 +15,7 @@ import {
   ZoneBars,
 } from "./charts";
 import { syncNow } from "./actions";
+import { fmtDate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 // Governs the syncNow server action too; incremental syncs are quick, and the
@@ -196,9 +197,9 @@ export default async function Whoop({
 
       {/* Snapshot */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-        <Stat label="Recovery" value={fmt(snapshot.recovery?.score)} unit="%" sub={snapshot.recovery?.date} />
-        <Stat label="Sleep" value={fmt(snapshot.sleep?.hours, 1)} unit="hrs" sub={snapshot.sleep?.date} />
-        <Stat label="Day strain" value={fmt(snapshot.strain?.strain, 1)} sub={snapshot.strain?.date} />
+        <Stat label="Recovery" value={fmt(snapshot.recovery?.score)} unit="%" sub={fmtDate(snapshot.recovery?.date)} />
+        <Stat label="Sleep" value={fmt(snapshot.sleep?.hours, 1)} unit="hrs" sub={fmtDate(snapshot.sleep?.date)} />
+        <Stat label="Day strain" value={fmt(snapshot.strain?.strain, 1)} sub={fmtDate(snapshot.strain?.date)} />
         <Stat label="HRV" value={fmt(snapshot.recovery?.hrv, 0)} unit="ms" />
         <Stat label="Resting HR" value={fmt(snapshot.recovery?.rhr, 0)} unit="bpm" />
       </div>
@@ -268,7 +269,7 @@ export default async function Whoop({
                 <tbody className="text-zinc-700 dark:text-zinc-300">
                   {workouts.map((w, i) => (
                     <tr key={i} className="border-t border-black/[.06] dark:border-white/[.08]">
-                      <td className="py-1.5 pr-3 tabular-nums">{w.date}</td>
+                      <td className="py-1.5 pr-3 tabular-nums">{fmtDate(w.date)}</td>
                       <td className="py-1.5 pr-3 capitalize">{w.sport ?? "—"}</td>
                       <td className="py-1.5 pr-3 text-right tabular-nums">{fmt(w.strain, 1)}</td>
                       <td className="py-1.5 pr-3 text-right tabular-nums">{fmt(w.avgHr)}</td>
