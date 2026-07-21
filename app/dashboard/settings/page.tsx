@@ -7,7 +7,7 @@ export default async function Settings() {
   const smoothing = await getWhoopSmoothing();
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex max-w-md flex-col gap-8">
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold tracking-tight text-black dark:text-zinc-50">
           Settings
