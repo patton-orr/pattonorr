@@ -15,8 +15,16 @@ import {
   ZoneBars,
 } from "../charts";
 import { fmtDate } from "@/lib/format";
-import { RangeToggle, parseRange, rangeDays, rangeLabel } from "../range-toggle";
+import {
+  AvgToggle,
+  RangeToggle,
+  parseAvg,
+  parseRange,
+  rangeDays,
+  rangeLabel,
+} from "../range-toggle";
 import { REC_ZONES } from "../zones-config";
+import { getWhoopSmoothing } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -123,15 +131,18 @@ export default async function MetricDetail({
   searchParams,
 }: {
   params: Promise<{ metric: string }>;
-  searchParams: Promise<{ range?: string }>;
+  searchParams: Promise<{ range?: string; avg?: string }>;
 }) {
   const { metric } = await params;
   const sp = await searchParams;
   if (!METRICS.includes(metric as Metric)) notFound();
   const m = metric as Metric;
   const range = parseRange(sp.range, true);
+  const avg = parseAvg(sp.avg);
   const days = rangeDays(range);
   const basePath = `/dashboard/whoop/${m}`;
+  const hasAvg = m === "recovery" || m === "hrv" || m === "strain";
+  const smoothing = (await getWhoopSmoothing()) / 100;
 
   let body: React.ReactNode = null;
 
@@ -163,6 +174,8 @@ export default async function MetricDetail({
           unit={isRec ? "%" : "ms"}
           domain={isRec ? [0, 100] : undefined}
           zones={isRec ? REC_ZONES : undefined}
+          avgWindow={avg}
+          smoothing={smoothing}
         />
         <DataTable
           head={["Date", "Recovery %", "HRV ms", "Resting HR"]}
@@ -247,6 +260,8 @@ export default async function MetricDetail({
           data={trend.map((t) => ({ date: t.date, value: t.strain }))}
           colorVar="--strain"
           domainMax={21}
+          avgWindow={avg}
+          smoothing={smoothing}
         />
         <DataTable
           head={["Date", "Strain", "Calories", "Avg HR", "Max HR"]}
@@ -318,7 +333,22 @@ export default async function MetricDetail({
           </h1>
         </div>
         {m !== "workouts" ? (
-          <RangeToggle range={range} basePath={basePath} showAll />
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            {hasAvg ? (
+              <span className="flex items-center gap-2">
+                <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                  Avg
+                </span>
+                <AvgToggle avg={avg} range={range} basePath={basePath} />
+              </span>
+            ) : null}
+            <RangeToggle
+              range={range}
+              avg={hasAvg ? avg : undefined}
+              basePath={basePath}
+              showAll
+            />
+          </div>
         ) : null}
       </div>
       {body}

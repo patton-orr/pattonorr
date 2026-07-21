@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { fmtDate } from "@/lib/format";
+import { smoothSegment } from "@/lib/spline";
 
 // Hand-rolled SVG charts following the dataviz mark specs: 2px lines, rounded
 // data-ends, recessive grid/axes, 2px gaps between stacked segments, crosshair
@@ -97,16 +98,17 @@ function niceMax(v: number, step: number) {
   return Math.max(step, Math.ceil(v / step) * step);
 }
 
-// Centered, null-aware moving average.
-function movingAverage(values: (number | null)[], window: number) {
-  const h = Math.floor(window / 2);
-  return values.map((_, i) => {
+// Trailing, null-aware rolling average over the last `window` days. Null where
+// the day itself has no data, so gaps stay aligned with the raw series.
+function rollingAverage(values: (number | null)[], window: number) {
+  return values.map((v, i) => {
+    if (v == null) return null;
     let sum = 0;
     let count = 0;
-    for (let j = i - h; j <= i + h; j++) {
-      const v = values[j];
-      if (v != null) {
-        sum += v;
+    for (let j = i - window + 1; j <= i; j++) {
+      const x = values[j];
+      if (x != null) {
+        sum += x;
         count++;
       }
     }
@@ -114,22 +116,27 @@ function movingAverage(values: (number | null)[], window: number) {
   });
 }
 
-// SVG path over a series, breaking on null gaps.
+// SVG path over a series, breaking on null gaps, optionally smoothed.
 function linePath(
   values: (number | null)[],
   xOf: (i: number) => number,
   y: (v: number) => number,
+  k = 0,
 ) {
   let d = "";
-  let penUp = true;
+  let run: { x: number; y: number }[] = [];
+  const flush = () => {
+    if (run.length >= 2) d += smoothSegment(run, k);
+    run = [];
+  };
   values.forEach((v, i) => {
     if (v == null) {
-      penUp = true;
+      flush();
       return;
     }
-    d += `${penUp ? "M" : "L"}${xOf(i)},${y(v)} `;
-    penUp = false;
+    run.push({ x: xOf(i), y: y(v) });
   });
+  flush();
   return d;
 }
 
@@ -310,6 +317,8 @@ export function LineChart({
   decimals = 0,
   zones,
   average = true,
+  avgWindow = 5,
+  smoothing = 0,
   href,
 }: {
   title: string;
@@ -321,10 +330,13 @@ export function LineChart({
   decimals?: number;
   zones?: Zone[];
   average?: boolean;
+  avgWindow?: number;
+  smoothing?: number; // 0-1 corner rounding for the day-to-day line
   href?: string;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [active, setActive] = useState<number | null>(null);
+  const clipId = useId();
   const g = useGeom();
   const values = data.map((d) => d.value);
   const present = values.filter((v): v is number => v != null);
@@ -351,11 +363,10 @@ export function LineChart({
   const y = (v: number) => g.pad.top + (1 - (v - lo) / span) * g.ph;
   const dates = data.map((d) => d.date);
 
-  const window = Math.min(45, Math.max(5, Math.round(n / 12)));
-  const maVals = average ? movingAverage(values, window) : null;
+  const maVals = average ? rollingAverage(values, avgWindow) : null;
 
-  const raw = linePath(values, xAt, y);
-  const ma = maVals ? linePath(maVals, xAt, y) : "";
+  const raw = linePath(values, xAt, y, smoothing);
+  const ma = maVals ? linePath(maVals, xAt, y, smoothing) : "";
 
   const ticks = 4;
   const gridVals = Array.from({ length: ticks + 1 }, (_, k) => lo + (span * k) / ticks);
@@ -372,8 +383,11 @@ export function LineChart({
 
   const activePt = active != null ? data[active] : null;
   const showTip = activePt != null && activePt.value != null;
-  const strokeW = 2 * Math.min(g.s, 1.4);
-  const rawWidth = average ? strokeW * 0.75 : strokeW;
+  const scaleW = Math.min(g.s, 1.4);
+  // The rolling average is the headline stat: 25% heavier than a plain line,
+  // with the raw day-to-day series receding behind it.
+  const avgWidth = 2.5 * scaleW;
+  const rawWidth = average ? 1.5 * scaleW : 2 * scaleW;
   const rawOpacity = average ? 0.55 : 1;
 
   return (
@@ -398,19 +412,27 @@ export function LineChart({
         ))}
         <YGrid values={gridVals} y={y} g={g} />
         <XAxisLabels dates={dates} xOf={xAt} g={g} />
-        <path d={raw} fill="none" stroke={`var(${colorVar})`} strokeWidth={rawWidth} strokeOpacity={rawOpacity} strokeLinejoin="round" strokeLinecap="round" />
-        {isolated.map((p) => (
-          <circle
-            key={`iso-${p.i}`}
-            cx={xAt(p.i)}
-            cy={y(p.v)}
-            r={2.5 * g.s}
-            fill={`var(${zoneColor(p.v, zones) ?? colorVar})`}
-          />
-        ))}
-        {ma && (
-          <path d={ma} fill="none" stroke="var(--avg)" strokeWidth={strokeW} strokeLinejoin="round" strokeLinecap="round" />
-        )}
+        {/* Splines can slightly overshoot at sharp reversals; clip to the plot. */}
+        <defs>
+          <clipPath id={clipId}>
+            <rect x={g.pad.left} y={g.pad.top} width={g.pw} height={g.ph} />
+          </clipPath>
+        </defs>
+        <g clipPath={`url(#${clipId})`}>
+          <path d={raw} fill="none" stroke={`var(${colorVar})`} strokeWidth={rawWidth} strokeOpacity={rawOpacity} strokeLinejoin="round" strokeLinecap="round" />
+          {isolated.map((p) => (
+            <circle
+              key={`iso-${p.i}`}
+              cx={xAt(p.i)}
+              cy={y(p.v)}
+              r={2.5 * g.s}
+              fill={`var(${zoneColor(p.v, zones) ?? colorVar})`}
+            />
+          ))}
+          {ma && (
+            <path d={ma} fill="none" stroke="var(--avg)" strokeWidth={avgWidth} strokeLinejoin="round" strokeLinecap="round" />
+          )}
+        </g>
         {showTip && (
           <>
             <line x1={xAt(active!)} x2={xAt(active!)} y1={g.pad.top} y2={g.pad.top + g.ph} stroke="var(--axis)" strokeWidth={1} />
@@ -567,6 +589,8 @@ export function BarChart({
   unit = "",
   decimals = 1,
   average = true,
+  avgWindow = 5,
+  smoothing = 0,
   href,
 }: {
   title: string;
@@ -577,6 +601,8 @@ export function BarChart({
   unit?: string;
   decimals?: number;
   average?: boolean;
+  avgWindow?: number;
+  smoothing?: number;
   href?: string;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -608,8 +634,9 @@ export function BarChart({
   const y = (v: number) => g.pad.top + (1 - v / max) * g.ph;
   const gridVals = Array.from({ length: 5 }, (_, k) => (max * k) / 4);
 
-  const window = Math.min(45, Math.max(5, Math.round(n / 12)));
-  const ma = average ? linePath(movingAverage(vals, window), bandCenter, y) : "";
+  const ma = average
+    ? linePath(rollingAverage(vals, avgWindow), bandCenter, y, smoothing)
+    : "";
   const a = active != null ? data[active] : null;
 
   return (
@@ -640,7 +667,7 @@ export function BarChart({
             />
           );
         })}
-        {ma && <path d={ma} fill="none" stroke="var(--avg)" strokeWidth={2 * Math.min(g.s, 1.4)} strokeLinejoin="round" strokeLinecap="round" />}
+        {ma && <path d={ma} fill="none" stroke="var(--avg)" strokeWidth={2.5 * Math.min(g.s, 1.4)} strokeLinejoin="round" strokeLinecap="round" />}
       </svg>
       {a && a.value != null && (
         <div className="tip" style={{ left: `${(bandCenter(active!) / g.W) * 100}%`, top: `${(y(a.value) / g.H) * 100}%` }}>

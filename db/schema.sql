@@ -89,6 +89,14 @@ CREATE TABLE IF NOT EXISTS whoop_workout (
 );
 CREATE INDEX IF NOT EXISTS whoop_workout_start_idx ON whoop_workout (start DESC);
 
+-- Generic app settings (single-user), e.g. WHOOP chart smoothing. JSONB so
+-- values stay schemaless and portable.
+CREATE TABLE IF NOT EXISTS app_settings (
+  key         TEXT PRIMARY KEY,
+  value       JSONB NOT NULL,
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- Per-resource incremental sync cursor (last record updated_at we ingested).
 CREATE TABLE IF NOT EXISTS whoop_sync_state (
   resource     TEXT PRIMARY KEY,   -- 'cycle' | 'recovery' | 'sleep' | 'workout'

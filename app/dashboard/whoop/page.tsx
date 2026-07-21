@@ -17,8 +17,9 @@ import {
 import Link from "next/link";
 import { syncNow } from "./actions";
 import { fmtDate } from "@/lib/format";
-import { RangeToggle, parseRange, rangeLabel } from "./range-toggle";
+import { AvgToggle, RangeToggle, parseAvg, parseRange, rangeLabel } from "./range-toggle";
 import { REC_ZONES } from "./zones-config";
+import { getWhoopSmoothing } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 // Governs the syncNow server action too; incremental syncs are quick, and the
@@ -87,11 +88,12 @@ function Header({ lastSync }: { lastSync: string | null }) {
 export default async function Whoop({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; range?: string }>;
+  searchParams: Promise<{ error?: string; range?: string; avg?: string }>;
 }) {
   const sp = await searchParams;
   const error = sp.error;
   const range = parseRange(sp.range);
+  const avg = parseAvg(sp.avg);
   const status = await getStatus();
 
   if (!status.connected) {
@@ -132,14 +134,17 @@ export default async function Whoop({
     );
   }
 
-  const [snapshot, recovery, sleep, strain, zones, workouts] = await Promise.all([
-    getSnapshot(),
-    getRecoveryTrend(range),
-    getSleepTrend(21),
-    getStrainTrend(range),
-    getZoneTotals(30),
-    getRecentWorkouts(8),
-  ]);
+  const [snapshot, recovery, sleep, strain, zones, workouts, smoothingPct] =
+    await Promise.all([
+      getSnapshot(),
+      getRecoveryTrend(range),
+      getSleepTrend(21),
+      getStrainTrend(range),
+      getZoneTotals(30),
+      getRecentWorkouts(8),
+      getWhoopSmoothing(),
+    ]);
+  const smoothing = smoothingPct / 100;
 
   const recoveryLine = recovery.map((r) => ({ date: r.date, value: r.recovery }));
   const hrvLine = recovery.map((r) => ({ date: r.date, value: r.hrv }));
@@ -168,12 +173,20 @@ export default async function Whoop({
         <Stat label="Resting HR" value={fmt(snapshot.recovery?.rhr, 0)} unit="bpm" />
       </div>
 
-      {/* Trend range (applies to Recovery, HRV, Day strain) */}
-      <div className="flex items-center gap-3">
-        <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-          Trends
+      {/* Trend range + rolling-average window (Recovery, HRV, Day strain) */}
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+        <span className="flex items-center gap-3">
+          <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+            Trends
+          </span>
+          <RangeToggle range={range} avg={avg} />
         </span>
-        <RangeToggle range={range} />
+        <span className="flex items-center gap-3">
+          <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+            Avg
+          </span>
+          <AvgToggle avg={avg} range={range} />
+        </span>
       </div>
 
       {/* Charts */}
@@ -187,6 +200,8 @@ export default async function Whoop({
           unit="%"
           domain={[0, 100]}
           zones={REC_ZONES}
+          avgWindow={avg}
+          smoothing={smoothing}
           href="/dashboard/whoop/recovery"
         />
         <LineChart
@@ -195,6 +210,8 @@ export default async function Whoop({
           data={hrvLine}
           colorVar="--hrv"
           unit="ms"
+          avgWindow={avg}
+          smoothing={smoothing}
           href="/dashboard/whoop/hrv"
         />
         <SleepStagesChart
@@ -209,6 +226,8 @@ export default async function Whoop({
           data={strainBars}
           colorVar="--strain"
           domainMax={21}
+          avgWindow={avg}
+          smoothing={smoothing}
           href="/dashboard/whoop/strain"
         />
         <ZoneBars
