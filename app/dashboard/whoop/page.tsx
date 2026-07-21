@@ -27,6 +27,45 @@ const ERRORS: Record<string, string> = {
   exchange: "Couldn’t complete the WHOOP handshake. Try again.",
 };
 
+// WHOOP recovery zones: red 0–33, yellow 34–66, green 67–100.
+const REC_ZONES = [
+  { min: 67, max: 100, colorVar: "--rec-green" },
+  { min: 34, max: 66, colorVar: "--rec-yellow" },
+  { min: 0, max: 33, colorVar: "--rec-red" },
+];
+
+const RANGES = [30, 90, 365];
+
+function rangeLabel(range: number) {
+  return range === 365 ? "Last year" : `Last ${range} days`;
+}
+
+function RangeToggle({ range }: { range: number }) {
+  const opts = [
+    { v: 30, l: "30d" },
+    { v: 90, l: "90d" },
+    { v: 365, l: "1y" },
+  ];
+  return (
+    <div className="inline-flex rounded-full border border-black/[.1] p-0.5 dark:border-white/[.145]">
+      {opts.map((o) => (
+        <a
+          key={o.v}
+          href={`?range=${o.v}`}
+          aria-current={range === o.v ? "true" : undefined}
+          className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+            range === o.v
+              ? "bg-black/[.06] text-black dark:bg-white/[.1] dark:text-zinc-50"
+              : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+          }`}
+        >
+          {o.l}
+        </a>
+      ))}
+    </div>
+  );
+}
+
 function Stat({
   label,
   value,
@@ -83,9 +122,11 @@ function Header({ lastSync }: { lastSync: string | null }) {
 export default async function Whoop({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; range?: string }>;
 }) {
-  const { error } = await searchParams;
+  const sp = await searchParams;
+  const error = sp.error;
+  const range = RANGES.includes(Number(sp.range)) ? Number(sp.range) : 90;
   const status = await getStatus();
 
   if (!status.connected) {
@@ -128,9 +169,9 @@ export default async function Whoop({
 
   const [snapshot, recovery, sleep, strain, zones, workouts] = await Promise.all([
     getSnapshot(),
-    getRecoveryTrend(90),
+    getRecoveryTrend(range),
     getSleepTrend(21),
-    getStrainTrend(21),
+    getStrainTrend(range),
     getZoneTotals(30),
     getRecentWorkouts(8),
   ]);
@@ -162,20 +203,29 @@ export default async function Whoop({
         <Stat label="Resting HR" value={fmt(snapshot.recovery?.rhr, 0)} unit="bpm" />
       </div>
 
+      {/* Trend range (applies to Recovery, HRV, Day strain) */}
+      <div className="flex items-center gap-3">
+        <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+          Trends
+        </span>
+        <RangeToggle range={range} />
+      </div>
+
       {/* Charts */}
       <div className="whoop-viz grid grid-cols-1 gap-4 lg:grid-cols-2">
         <VizStyles />
         <LineChart
           title="Recovery"
-          subtitle="Last 90 days · %"
+          subtitle={`${rangeLabel(range)} · %`}
           data={recoveryLine}
           colorVar="--recovery"
           unit="%"
           domain={[0, 100]}
+          zones={REC_ZONES}
         />
         <LineChart
           title="Heart rate variability"
-          subtitle="Last 90 days · ms"
+          subtitle={`${rangeLabel(range)} · ms`}
           data={hrvLine}
           colorVar="--hrv"
           unit="ms"
@@ -187,7 +237,7 @@ export default async function Whoop({
         />
         <BarChart
           title="Day strain"
-          subtitle="Last 21 days · 0–21"
+          subtitle={`${rangeLabel(range)} · 0–21`}
           data={strainBars}
           colorVar="--strain"
           domainMax={21}
