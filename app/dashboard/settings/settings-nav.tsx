@@ -16,7 +16,7 @@ export function SettingsNav({ isAdmin = false }: { isAdmin?: boolean }) {
   const sections = isAdmin
     ? [
         ...SECTIONS,
-        { label: "Navigation", href: "/dashboard/settings/navigation" },
+        { label: "Top bar", href: "/dashboard/settings/navigation" },
         { label: "Access", href: "/dashboard/settings/access" },
       ]
     : SECTIONS;

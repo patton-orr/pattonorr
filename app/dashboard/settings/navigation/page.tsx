@@ -15,8 +15,8 @@ export default async function NavigationSettingsPage() {
 
   return (
     <SettingsSection
-      title="Navigation"
-      description="Choose which top-level sections appear on the horizontal top bar. The full menu (the hamburger) always shows everything."
+      title="Top Horizontal Bar"
+      description="Which sections show on the bar. The full menu always shows everything."
     >
       <NavigationSettings initialHidden={hidden} />
     </SettingsSection>
