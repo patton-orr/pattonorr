@@ -20,9 +20,12 @@ export function ContentArea({
   const faith =
     pathname === "/dashboard/faith" || pathname.startsWith("/dashboard/bible");
   const section = sectionForPath(pathname);
+  // Home is always available to any signed-in user (the guest welcome lives
+  // there); Settings is admin-only; everything else must be granted.
   const denied =
     !isAdmin &&
     section !== null &&
+    section !== "home" &&
     (section === "settings" || !sections.includes(section));
 
   return (
