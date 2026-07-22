@@ -168,7 +168,7 @@ export function DashboardNav({
 
           {/* Right column: top-level row + sub-nav, both left-aligned together */}
           <div className="flex min-w-0 flex-1 flex-col">
-            <nav className="flex items-center gap-0.5 overflow-x-auto py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <nav className="flex items-center gap-2 overflow-x-auto py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {barVisible.map((e) => {
                 const on = top?.label === e.label;
                 return (
