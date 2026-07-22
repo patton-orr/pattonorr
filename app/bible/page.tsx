@@ -43,27 +43,14 @@ export default async function BibleHome({
   const search = query ? await searchPassages(query) : null;
 
   return (
-    <div
-      className="faith-theme flex min-h-dvh flex-col font-sans"
-      style={{ background: "var(--reader-bg)", color: "var(--reader-fg)" }}
-    >
-      <header
-        className="sticky top-0 z-30 flex items-center justify-between border-b px-4 py-3"
-        style={{ background: "var(--reader-surface)", borderColor: "var(--reader-border)" }}
+    <div className="mx-auto w-full max-w-3xl">
+      <h1
+        className="mb-6 text-2xl font-semibold tracking-tight"
+        style={{ color: "var(--reader-fg)", fontFamily: "var(--reader-serif)" }}
       >
-        <span className="text-lg font-semibold tracking-tight" style={{ color: "var(--reader-fg)" }}>
-          Bible
-        </span>
-        <Link
-          href="/dashboard"
-          className="rounded-full px-3 py-1.5 text-sm text-zinc-500 transition-colors hover:bg-black/[.05] pointer-coarse:py-2 dark:hover:bg-white/[.08]"
-        >
-          Dashboard
-        </Link>
-      </header>
-
-      <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-6 sm:px-8">
-        <form method="get" className="mb-6 flex gap-2">
+        Bible
+      </h1>
+      <form method="get" className="mb-6 flex gap-2">
           <input
             name="q"
             type="text"
@@ -111,7 +98,6 @@ export default async function BibleHome({
             {!search.results.length && <p className="text-sm text-zinc-500">No results.</p>}
           </div>
         )}
-      </main>
     </div>
   );
 }
