@@ -1,4 +1,4 @@
-import { getSetting, setSetting } from "@/lib/settings";
+import { getSetting, getSettingsByPrefix, setSetting } from "@/lib/settings";
 
 // Bible state (single-user) stored in app_settings JSON: saved passages and
 // reading-plan progress. No new tables needed.
@@ -57,7 +57,24 @@ export const HIGHLIGHT_COLORS = ["yellow", "green", "blue", "pink"] as const;
 export type HighlightColor = (typeof HIGHLIGHT_COLORS)[number];
 
 const EMPTY_NOTES: ChapterNotes = { highlights: [], reflection: "" };
-const notesKey = (ref: string) => `bible.notes:${ref}`;
+const NOTES_PREFIX = "bible.notes:";
+const notesKey = (ref: string) => `${NOTES_PREFIX}${ref}`;
+
+// Every highlight across all chapters, tagged with its passage ref — for the
+// Saved page's Highlights column. Newest first.
+export async function getAllHighlights(): Promise<
+  { ref: string; highlight: Highlight }[]
+> {
+  const rows = await getSettingsByPrefix<ChapterNotes>(NOTES_PREFIX);
+  const out: { ref: string; highlight: Highlight }[] = [];
+  for (const { key, value } of rows) {
+    const ref = key.slice(NOTES_PREFIX.length);
+    for (const h of value?.highlights ?? []) out.push({ ref, highlight: h });
+  }
+  return out.sort((a, b) =>
+    (b.highlight.createdAt || "").localeCompare(a.highlight.createdAt || ""),
+  );
+}
 
 export async function getChapterNotes(ref: string): Promise<ChapterNotes> {
   const n = await getSetting<ChapterNotes>(notesKey(ref), EMPTY_NOTES);

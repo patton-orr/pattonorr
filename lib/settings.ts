@@ -22,6 +22,21 @@ export async function setSetting(key: string, value: unknown) {
     ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = now()`;
 }
 
+// All settings whose key starts with `prefix` (e.g. per-chapter note rows like
+// `bible.notes:<ref>`). Prefix must not contain LIKE wildcards.
+export async function getSettingsByPrefix<T>(
+  prefix: string,
+): Promise<{ key: string; value: T }[]> {
+  const sql = getSql();
+  try {
+    const rows = await sql`
+      SELECT key, value FROM app_settings WHERE key LIKE ${prefix + "%"}`;
+    return rows.map((r) => ({ key: r.key as string, value: r.value as T }));
+  } catch {
+    return [];
+  }
+}
+
 // --- WHOOP chart preferences ---
 
 export const WHOOP_SMOOTHING_KEY = "whoop.smoothing";

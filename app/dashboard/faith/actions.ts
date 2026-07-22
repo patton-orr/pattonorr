@@ -22,12 +22,12 @@ export async function addQuickNoteAction(text: string, ref?: string | null) {
   const session = await auth();
   if (!session) return;
   await addQuickNote(text, ref ?? null);
-  revalidatePath("/dashboard/notes");
+  revalidatePath("/dashboard/bible/saved");
 }
 
 export async function removeQuickNoteAction(id: string) {
   const session = await auth();
   if (!session) return;
   await removeQuickNote(id);
-  revalidatePath("/dashboard/notes");
+  revalidatePath("/dashboard/bible/saved");
 }
