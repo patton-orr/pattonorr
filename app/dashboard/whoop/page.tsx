@@ -61,16 +61,24 @@ function Stat({
 
 function Header({ lastSync }: { lastSync: string | null }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-3">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight text-black dark:text-zinc-50">
-          WHOOP
-        </h1>
-        <p className="text-zinc-600 dark:text-zinc-400">
-          Recovery, sleep, and strain — synced from your account.
-        </p>
+    <div className="flex flex-col gap-3">
+      <Link
+        href="/dashboard/whoop-revised"
+        className="inline-flex w-fit items-center gap-1 text-xs font-medium text-zinc-500 transition-colors hover:text-black dark:text-zinc-400 dark:hover:text-zinc-100"
+      >
+        ← Back to WHOOP
+      </Link>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight text-black dark:text-zinc-50">
+            WHOOP Data
+          </h1>
+          <p className="text-zinc-600 dark:text-zinc-400">
+            The full detail — recovery, sleep, strain, and workouts.
+          </p>
+        </div>
+        <SyncButton lastSync={lastSync} />
       </div>
-      <SyncButton lastSync={lastSync} />
     </div>
   );
 }

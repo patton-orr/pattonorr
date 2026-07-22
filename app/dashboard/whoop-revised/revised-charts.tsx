@@ -237,19 +237,9 @@ export function StrainRecoveryChart({ week }: { week: Day[] }) {
 // --- Recovery trend bars ---
 
 export function RecoveryTrend({ week }: { week: Day[] }) {
-  const present = week.filter((d) => d.recovery != null) as (Day & {
-    recovery: number;
-  })[];
-  const counts = {
-    green: present.filter((d) => d.recovery >= 67).length,
-    yellow: present.filter((d) => d.recovery >= 34 && d.recovery < 67).length,
-    red: present.filter((d) => d.recovery < 34).length,
-  };
-  const total = present.length || 1;
-
   return (
     <Card title="Recovery Trend">
-      <div className="flex items-end justify-between gap-1.5" style={{ height: 128 }}>
+      <div className="flex items-end justify-between gap-2" style={{ height: 188 }}>
         {week.map((d, i) => (
           <div key={i} className="flex flex-1 flex-col items-center justify-end gap-1.5" style={{ height: "100%" }}>
             {d.recovery != null ? (
@@ -258,45 +248,21 @@ export function RecoveryTrend({ week }: { week: Day[] }) {
                   {Math.round(d.recovery)}%
                 </span>
                 <div
-                  className="w-full max-w-[24px] rounded"
+                  className="w-full max-w-[36px] rounded"
                   style={{
-                    height: `${Math.max(2, (d.recovery / 100) * 92)}px`,
+                    height: `${Math.max(2, (d.recovery / 100) * 152)}px`,
                     background: recoveryColor(d.recovery),
                   }}
                 />
               </>
             ) : (
-              <div className="w-full max-w-[24px] rounded" style={{ height: 2, background: C.track }} />
+              <div className="w-full max-w-[36px] rounded" style={{ height: 2, background: C.track }} />
             )}
             <span className="text-[10px] font-semibold" style={{ color: C.muted }}>
               {d.dow}
             </span>
           </div>
         ))}
-      </div>
-
-      <div className="flex flex-col gap-2 border-t pt-3" style={{ borderColor: C.grid }}>
-        <span className="text-[11px] font-bold tracking-widest uppercase" style={{ color: C.muted }}>
-          Recovery breakdown
-        </span>
-        <div className="flex h-2 overflow-hidden rounded-full" style={{ background: C.inner }}>
-          <div style={{ width: `${(counts.green / total) * 100}%`, background: C.green }} />
-          <div style={{ width: `${(counts.yellow / total) * 100}%`, background: C.yellow }} />
-          <div style={{ width: `${(counts.red / total) * 100}%`, background: C.red }} />
-        </div>
-        <div className="flex flex-wrap gap-x-4 gap-y-1">
-          {[
-            { n: counts.green, c: C.green, l: "Green (67–99%)" },
-            { n: counts.yellow, c: C.yellow, l: "Yellow (34–66%)" },
-            { n: counts.red, c: C.red, l: "Red (1–33%)" },
-          ].map((row) => (
-            <span key={row.l} className="flex items-center gap-1.5 text-xs" style={{ color: C.muted }}>
-              <span className="inline-block h-2 w-2 rounded-sm" style={{ background: row.c }} />
-              <span className="font-extrabold" style={{ color: C.text }}>{row.n}x</span>
-              {row.l}
-            </span>
-          ))}
-        </div>
       </div>
     </Card>
   );

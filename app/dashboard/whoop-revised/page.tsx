@@ -88,6 +88,16 @@ export default async function WhoopRevised() {
           <RecoveryTrend week={week} />
         </div>
       </div>
+
+      {/* The detailed original charts live on, reachable only from here. */}
+      <div className="flex justify-end">
+        <Link
+          href="/dashboard/whoop"
+          className="text-xs font-medium text-zinc-400 transition-colors hover:text-zinc-700 hover:underline dark:text-zinc-500 dark:hover:text-zinc-300"
+        >
+          WHOOP Data →
+        </Link>
+      </div>
     </div>
   );
 }

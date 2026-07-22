@@ -13,7 +13,7 @@ export default function Health() {
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <AreaCard
-          href="/dashboard/whoop"
+          href="/dashboard/whoop-revised"
           title="WHOOP"
           desc="Recovery, sleep, strain, and workouts."
         />
