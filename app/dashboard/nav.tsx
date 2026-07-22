@@ -8,29 +8,31 @@ import { signOutAction } from "./actions";
 // FT-style navigation: a sticky top bar of the top-level sections, a sub-nav row
 // beneath it for the active section's children, and a hamburger drawer that
 // holds the full hierarchy (which may grow long). Data-driven from NAV.
-type Leaf = { label: string; href: string };
-type Group = { label: string; href: string; items: Leaf[] };
+type Leaf = { label: string; href: string; section: string };
+type Group = { label: string; href: string; section: string; items: Leaf[] };
 type Entry = Leaf | Group;
 
 const NAV: Entry[] = [
-  { label: "Home", href: "/dashboard" },
+  { label: "Home", href: "/dashboard", section: "home" },
   {
     label: "Health",
     href: "/dashboard/health",
-    items: [{ label: "WHOOP", href: "/dashboard/whoop" }],
+    section: "health",
+    items: [{ label: "WHOOP", href: "/dashboard/whoop", section: "health" }],
   },
   {
     label: "Faith",
     href: "/dashboard/faith",
+    section: "faith",
     items: [
-      { label: "Bible", href: "/bible" },
-      { label: "Reading plan", href: "/dashboard/bible/plan" },
-      { label: "Saved", href: "/dashboard/bible/saved" },
+      { label: "Bible", href: "/bible", section: "faith" },
+      { label: "Reading plan", href: "/dashboard/bible/plan", section: "faith" },
+      { label: "Saved", href: "/dashboard/bible/saved", section: "faith" },
     ],
   },
-  { label: "Notes", href: "/dashboard/notes" },
-  { label: "Ideas", href: "/dashboard/ideas" },
-  { label: "Settings", href: "/dashboard/settings" },
+  { label: "Notes", href: "/dashboard/notes", section: "notes" },
+  { label: "Ideas", href: "/dashboard/ideas", section: "ideas" },
+  { label: "Settings", href: "/dashboard/settings", section: "settings" },
 ];
 
 const isGroup = (e: Entry): e is Group => "items" in e;
@@ -43,9 +45,9 @@ function matches(pathname: string, href: string): boolean {
 }
 
 // The most-specific leaf/href the current path maps to (for highlighting).
-function activeHref(pathname: string): string | null {
+function activeHref(pathname: string, nav: Entry[]): string | null {
   let best: string | null = null;
-  for (const e of NAV) {
+  for (const e of nav) {
     const hrefs = isGroup(e) ? [e.href, ...e.items.map((i) => i.href)] : [e.href];
     for (const h of hrefs) {
       if (matches(pathname, h) && (!best || h.length > best.length)) best = h;
@@ -55,10 +57,10 @@ function activeHref(pathname: string): string | null {
 }
 
 // The top-level section that owns the current path (it or one of its children).
-function activeTop(pathname: string): Entry | null {
+function activeTop(pathname: string, nav: Entry[]): Entry | null {
   let best: Entry | null = null;
   let bestLen = -1;
-  for (const e of NAV) {
+  for (const e of nav) {
     const hrefs = isGroup(e) ? [e.href, ...e.items.map((i) => i.href)] : [e.href];
     for (const h of hrefs) {
       if (matches(pathname, h) && h.length > bestLen) {
@@ -82,13 +84,26 @@ function Chevron({ open }: { open: boolean }) {
   );
 }
 
-export function DashboardNav({ email }: { email?: string }) {
+export function DashboardNav({
+  email,
+  sections,
+  isAdmin,
+}: {
+  email?: string;
+  sections: string[];
+  isAdmin: boolean;
+}) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
-  const active = activeHref(pathname);
-  const top = activeTop(pathname);
+  // Only sections this user may see. Settings is admin-only; everything else is
+  // gated by the granted section list.
+  const visible = NAV.filter((e) =>
+    e.section === "settings" ? isAdmin : sections.includes(e.section),
+  );
+  const active = activeHref(pathname, visible);
+  const top = activeTop(pathname, visible);
   const subItems = top && isGroup(top) ? top.items : [];
 
   const toggleGroup = (label: string) =>
@@ -137,7 +152,7 @@ export function DashboardNav({ email }: { email?: string }) {
           </Link>
           <span className="mx-0.5 h-5 w-px shrink-0 bg-black/10 dark:bg-white/15" aria-hidden />
           <nav className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {NAV.map((e) => {
+            {visible.map((e) => {
               const on = top?.label === e.label;
               return (
                 <Link
@@ -219,7 +234,7 @@ export function DashboardNav({ email }: { email?: string }) {
             Top sections
           </div>
           <nav className="flex flex-col gap-0.5">
-            {NAV.map((entry) =>
+            {visible.map((entry) =>
               isGroup(entry) ? (
                 <div key={entry.label} className="flex flex-col">
                   <div className="flex items-center gap-0.5">

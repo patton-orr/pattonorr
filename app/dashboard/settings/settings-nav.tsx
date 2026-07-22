@@ -4,18 +4,21 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 // Secondary navigation for the settings area. Vertical pane on tablet/desktop,
-// a horizontal scroll strip on phones.
+// a horizontal scroll strip on phones. Access (guest management) is admin-only.
 const SECTIONS = [
   { label: "General", href: "/dashboard/settings" },
   { label: "Health", href: "/dashboard/settings/health" },
   { label: "Faith", href: "/dashboard/settings/faith" },
 ];
 
-export function SettingsNav() {
+export function SettingsNav({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
+  const sections = isAdmin
+    ? [...SECTIONS, { label: "Access", href: "/dashboard/settings/access" }]
+    : SECTIONS;
   return (
     <nav className="flex gap-1 overflow-x-auto border-b border-black/[.06] pb-2 md:w-44 md:shrink-0 md:flex-col md:border-b-0 md:pb-0 dark:border-white/[.1]">
-      {SECTIONS.map((s) => {
+      {sections.map((s) => {
         const active = pathname === s.href;
         return (
           <Link

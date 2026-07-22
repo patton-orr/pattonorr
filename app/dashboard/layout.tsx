@@ -1,4 +1,6 @@
 import { auth } from "@/auth";
+import { allowedSections } from "@/lib/access";
+import { isAdmin } from "@/lib/access-config";
 import { DashboardNav } from "./nav";
 import { ContentArea } from "./content-area";
 
@@ -11,11 +13,16 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const session = await auth();
+  const email = session?.user?.email ?? undefined;
+  const sections = await allowedSections(email);
+  const admin = isAdmin(email);
 
   return (
     <div className="flex min-h-full flex-1 flex-col font-sans">
-      <DashboardNav email={session?.user?.email ?? undefined} />
-      <ContentArea>{children}</ContentArea>
+      <DashboardNav email={email} sections={sections} isAdmin={admin} />
+      <ContentArea sections={sections} isAdmin={admin}>
+        {children}
+      </ContentArea>
     </div>
   );
 }
