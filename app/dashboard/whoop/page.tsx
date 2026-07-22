@@ -15,8 +15,8 @@ import {
   ZoneBars,
 } from "./charts";
 import Link from "next/link";
-import { syncNow } from "./actions";
-import { fmtDate, fmtEastern } from "@/lib/format";
+import { SyncButton } from "./sync-button";
+import { fmtDate } from "@/lib/format";
 import { AvgToggle, parseAvg, parseRange, rangeLabel } from "./range-toggle";
 import { RangeSlider } from "./range-slider";
 import { REC_ZONES } from "./zones-config";
@@ -70,19 +70,7 @@ function Header({ lastSync }: { lastSync: string | null }) {
           Recovery, sleep, and strain — synced from your account.
         </p>
       </div>
-      <form action={syncNow} className="flex items-center gap-3">
-        {lastSync ? (
-          <span className="text-xs text-zinc-500">
-            Synced {fmtEastern(lastSync)}
-          </span>
-        ) : null}
-        <button
-          type="submit"
-          className="rounded-full border border-black/[.1] px-4 py-2 text-sm font-medium text-zinc-700 transition-colors pointer-coarse:py-3 hover:bg-black/[.04] dark:border-white/[.145] dark:text-zinc-300 dark:hover:bg-white/[.06]"
-        >
-          Sync now
-        </button>
-      </form>
+      <SyncButton lastSync={lastSync} />
     </div>
   );
 }

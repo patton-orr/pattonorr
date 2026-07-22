@@ -1,5 +1,5 @@
 import { getSql } from "@/lib/db";
-import { getValidAccessToken } from "@/lib/whoop-store";
+import { getValidAccessToken, isConnected } from "@/lib/whoop-store";
 import {
   fetchCycles,
   fetchRecoveries,
@@ -55,7 +55,17 @@ export type SyncResult = {
 
 export async function runSync(): Promise<SyncResult> {
   const token = await getValidAccessToken();
-  if (!token) throw new Error("WHOOP not connected");
+  if (!token) {
+    // A token row can exist yet be unusable (the rotating refresh token has
+    // expired or was revoked). Tell the two states apart so the UI can offer
+    // the right fix — reconnect vs. first-time connect.
+    const connected = await isConnected();
+    throw new Error(
+      connected
+        ? "WHOOP authorization expired — reconnect your account."
+        : "WHOOP not connected.",
+    );
+  }
   const sql = getSql();
 
   // --- Cycles ---

@@ -48,7 +48,11 @@ export async function getValidAccessToken(): Promise<string | null> {
     const { accessToken, refreshed } = await ensureAccessToken(tokens);
     if (refreshed) await saveTokens(refreshed);
     return accessToken;
-  } catch {
+  } catch (e) {
+    // Refresh failed (expired/revoked refresh token, WHOOP outage, bad creds).
+    // Surface it in the server logs; callers get null and treat it as "needs
+    // reconnect" rather than crashing.
+    console.error("WHOOP getValidAccessToken failed:", e);
     return null;
   }
 }

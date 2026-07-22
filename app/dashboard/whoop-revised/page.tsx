@@ -7,8 +7,7 @@ import {
   type RecoveryPoint,
   type StrainPoint,
 } from "@/lib/whoop-queries";
-import { syncNow } from "@/app/dashboard/whoop/actions";
-import { fmtEastern } from "@/lib/format";
+import { SyncButton } from "@/app/dashboard/whoop/sync-button";
 import {
   OverviewRings,
   StrainRecoveryChart,
@@ -73,19 +72,7 @@ export default async function WhoopRevised() {
             A darker, WHOOP-app-styled take — a sandbox for new visuals.
           </p>
         </div>
-        <form action={syncNow} className="flex shrink-0 flex-col items-end gap-1">
-          <button
-            type="submit"
-            className="rounded-full border border-black/[.1] px-4 py-2 text-sm font-medium text-zinc-700 transition-colors pointer-coarse:py-3 hover:bg-black/[.04] dark:border-white/[.145] dark:text-zinc-300 dark:hover:bg-white/[.06]"
-          >
-            Sync now
-          </button>
-          {status.lastSync && (
-            <span className="text-xs text-zinc-500">
-              Synced {fmtEastern(status.lastSync)}
-            </span>
-          )}
-        </form>
+        <SyncButton lastSync={status.lastSync} stack />
       </div>
 
       <OverviewRings
