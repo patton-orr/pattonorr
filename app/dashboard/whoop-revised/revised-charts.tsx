@@ -35,13 +35,15 @@ export function recoveryColor(v: number): string {
 function Card({
   title,
   children,
+  className,
 }: {
   title?: string;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
     <div
-      className="flex flex-col gap-3 rounded-2xl p-4"
+      className={`flex flex-col gap-3 rounded-2xl p-4${className ? ` ${className}` : ""}`}
       style={{ background: C.card, border: `1px solid ${C.grid}` }}
     >
       {title && (
@@ -79,7 +81,7 @@ function Ring({
   return (
     <div className="flex flex-col items-center gap-2">
       <div className="relative">
-        <svg viewBox={`0 0 ${size} ${size}`} className="h-16 w-16">
+        <svg viewBox={`0 0 ${size} ${size}`} className="h-16 w-16 lg:h-28 lg:w-28">
           <circle cx={cx} cy={cx} r={r} fill="none" stroke={C.track} strokeWidth={sw} />
           <circle
             cx={cx}
@@ -94,10 +96,10 @@ function Ring({
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-lg font-extrabold" style={{ color: C.text }}>
+          <span className="text-lg font-extrabold lg:text-3xl" style={{ color: C.text }}>
             {big}
             {unit && (
-              <span className="text-xs font-bold" style={{ color: C.text }}>
+              <span className="text-xs font-bold lg:text-base" style={{ color: C.text }}>
                 {unit}
               </span>
             )}
@@ -124,8 +126,8 @@ export function OverviewRings({
   strain: number | null;
 }) {
   return (
-    <Card title="Overview">
-      <div className="grid grid-cols-3 gap-2">
+    <Card title="Overview" className="lg:h-full">
+      <div className="grid grid-cols-3 gap-2 lg:flex lg:flex-1 lg:flex-col lg:items-center lg:justify-around lg:gap-2">
         <Ring
           frac={(sleep ?? 0) / 100}
           color={C.sleep}

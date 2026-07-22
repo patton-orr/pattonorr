@@ -62,7 +62,7 @@ export default async function WhoopRevised() {
   const week = buildWeek(rec, strain);
 
   return (
-    <div className="flex max-w-xl flex-col gap-4">
+    <div className="flex max-w-5xl flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold tracking-tight text-black dark:text-zinc-50">
@@ -75,13 +75,19 @@ export default async function WhoopRevised() {
         <SyncButton lastSync={status.lastSync} stack />
       </div>
 
-      <OverviewRings
-        sleep={snapshot.sleep?.performance ?? null}
-        recovery={snapshot.recovery?.score ?? null}
-        strain={snapshot.strain?.strain ?? null}
-      />
-      <StrainRecoveryChart week={week} />
-      <RecoveryTrend week={week} />
+      {/* Overview fills a tall left column; the two charts stack on the right,
+          squaring the whole thing off. Stacks to one column on mobile. */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-stretch">
+        <OverviewRings
+          sleep={snapshot.sleep?.performance ?? null}
+          recovery={snapshot.recovery?.score ?? null}
+          strain={snapshot.strain?.strain ?? null}
+        />
+        <div className="flex flex-col gap-4 lg:col-span-2">
+          <StrainRecoveryChart week={week} />
+          <RecoveryTrend week={week} />
+        </div>
+      </div>
     </div>
   );
 }
