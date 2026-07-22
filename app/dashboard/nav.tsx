@@ -18,7 +18,10 @@ const NAV: Entry[] = [
     label: "Health",
     href: "/dashboard/health",
     section: "health",
-    items: [{ label: "WHOOP", href: "/dashboard/whoop", section: "health" }],
+    items: [
+      { label: "WHOOP", href: "/dashboard/whoop", section: "health" },
+      { label: "WHOOP (revised)", href: "/dashboard/whoop-revised", section: "health" },
+    ],
   },
   {
     label: "Faith",
