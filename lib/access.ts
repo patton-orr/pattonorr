@@ -64,6 +64,11 @@ export async function allowedSections(
 ): Promise<SectionKey[]> {
   if (isAdmin(email)) return SECTIONS.map((s) => s.key);
   if (!email) return [];
-  const granted = (await getPermissions())[norm(email)] ?? [];
+  // Only ever honor sections that are actually grantable (drops any stale
+  // non-grantable grant like "health" that may linger in stored permissions).
+  const grantable = new Set<SectionKey>(GRANTABLE_SECTIONS.map((s) => s.key));
+  const granted = ((await getPermissions())[norm(email)] ?? []).filter((s) =>
+    grantable.has(s),
+  );
   return [...new Set<SectionKey>(["home", ...granted])];
 }

@@ -22,6 +22,33 @@ export async function setSetting(key: string, value: unknown) {
     ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = now()`;
 }
 
+// --- Per-user (personal) settings ---
+// Personal data is namespaced by the signed-in user's id so one person never
+// reads another's. Callers resolve the id via currentUserId() and pass it in;
+// a null id (no session) reads the fallback and writes nothing.
+
+const userKey = (userId: string, key: string) => `u:${userId}:${key}`;
+export const userPrefix = (userId: string, keyPrefix: string) =>
+  `u:${userId}:${keyPrefix}`;
+
+export async function getUserSetting<T>(
+  userId: string | null,
+  key: string,
+  fallback: T,
+): Promise<T> {
+  if (!userId) return fallback;
+  return getSetting<T>(userKey(userId, key), fallback);
+}
+
+export async function setUserSetting(
+  userId: string | null,
+  key: string,
+  value: unknown,
+) {
+  if (!userId) return;
+  await setSetting(userKey(userId, key), value);
+}
+
 // All settings whose key starts with `prefix` (e.g. per-chapter note rows like
 // `bible.notes:<ref>`). Prefix must not contain LIKE wildcards.
 export async function getSettingsByPrefix<T>(

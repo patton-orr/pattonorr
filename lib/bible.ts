@@ -1,7 +1,14 @@
-import { getSetting, getSettingsByPrefix, setSetting } from "@/lib/settings";
+import {
+  getSettingsByPrefix,
+  getUserSetting,
+  setUserSetting,
+  userPrefix,
+} from "@/lib/settings";
+import { currentUserId } from "@/lib/current-user";
 
-// Bible state (single-user) stored in app_settings JSON: saved passages and
-// reading-plan progress. No new tables needed.
+// Bible state stored in app_settings JSON, namespaced per signed-in user
+// (`u:<userId>:...`): saved passages, highlights + reflections, and reading-plan
+// progress. No new tables needed.
 
 // --- Saved passages ---
 
@@ -9,21 +16,25 @@ const BOOKMARKS_KEY = "bible.bookmarks";
 export type Bookmark = { ref: string; savedAt: string };
 
 export async function getBookmarks(): Promise<Bookmark[]> {
-  return getSetting<Bookmark[]>(BOOKMARKS_KEY, []);
+  const uid = await currentUserId();
+  return getUserSetting<Bookmark[]>(uid, BOOKMARKS_KEY, []);
 }
 
 export async function addBookmark(ref: string) {
-  const list = await getBookmarks();
+  const uid = await currentUserId();
+  const list = await getUserSetting<Bookmark[]>(uid, BOOKMARKS_KEY, []);
   if (list.some((b) => b.ref === ref)) return;
-  await setSetting(BOOKMARKS_KEY, [
+  await setUserSetting(uid, BOOKMARKS_KEY, [
     { ref, savedAt: new Date().toISOString() },
     ...list,
   ]);
 }
 
 export async function removeBookmark(ref: string) {
-  const list = await getBookmarks();
-  await setSetting(
+  const uid = await currentUserId();
+  const list = await getUserSetting<Bookmark[]>(uid, BOOKMARKS_KEY, []);
+  await setUserSetting(
+    uid,
     BOOKMARKS_KEY,
     list.filter((b) => b.ref !== ref),
   );
@@ -65,10 +76,13 @@ const notesKey = (ref: string) => `${NOTES_PREFIX}${ref}`;
 export async function getAllHighlights(): Promise<
   { ref: string; highlight: Highlight }[]
 > {
-  const rows = await getSettingsByPrefix<ChapterNotes>(NOTES_PREFIX);
+  const uid = await currentUserId();
+  if (!uid) return [];
+  const prefix = userPrefix(uid, NOTES_PREFIX);
+  const rows = await getSettingsByPrefix<ChapterNotes>(prefix);
   const out: { ref: string; highlight: Highlight }[] = [];
   for (const { key, value } of rows) {
-    const ref = key.slice(NOTES_PREFIX.length);
+    const ref = key.slice(prefix.length);
     for (const h of value?.highlights ?? []) out.push({ ref, highlight: h });
   }
   return out.sort((a, b) =>
@@ -76,20 +90,28 @@ export async function getAllHighlights(): Promise<
   );
 }
 
-export async function getChapterNotes(ref: string): Promise<ChapterNotes> {
-  const n = await getSetting<ChapterNotes>(notesKey(ref), EMPTY_NOTES);
+async function readChapterNotes(
+  uid: string | null,
+  ref: string,
+): Promise<ChapterNotes> {
+  const n = await getUserSetting<ChapterNotes>(uid, notesKey(ref), EMPTY_NOTES);
   return {
     highlights: Array.isArray(n.highlights) ? n.highlights : [],
     reflection: typeof n.reflection === "string" ? n.reflection : "",
   };
 }
 
+export async function getChapterNotes(ref: string): Promise<ChapterNotes> {
+  return readChapterNotes(await currentUserId(), ref);
+}
+
 async function mutateNotes(
   ref: string,
   fn: (n: ChapterNotes) => ChapterNotes,
 ) {
-  const current = await getChapterNotes(ref);
-  await setSetting(notesKey(ref), fn(current));
+  const uid = await currentUserId();
+  const current = await readChapterNotes(uid, ref);
+  await setUserSetting(uid, notesKey(ref), fn(current));
 }
 
 export async function addHighlight(ref: string, h: Highlight) {
@@ -173,22 +195,31 @@ const PLAN_KEY = "bible.plans";
 type PlanState = { active: string | null; progress: Record<string, number[]> };
 
 export async function getPlanState(): Promise<PlanState> {
-  return getSetting<PlanState>(PLAN_KEY, { active: null, progress: {} });
+  const uid = await currentUserId();
+  return getUserSetting<PlanState>(uid, PLAN_KEY, { active: null, progress: {} });
 }
 
 export async function setActivePlan(id: string | null) {
-  const s = await getPlanState();
+  const uid = await currentUserId();
+  const s = await getUserSetting<PlanState>(uid, PLAN_KEY, {
+    active: null,
+    progress: {},
+  });
   const progress = { ...s.progress };
   if (id && !progress[id]) progress[id] = [];
-  await setSetting(PLAN_KEY, { active: id, progress });
+  await setUserSetting(uid, PLAN_KEY, { active: id, progress });
 }
 
 export async function togglePlanDay(id: string, day: number) {
-  const s = await getPlanState();
+  const uid = await currentUserId();
+  const s = await getUserSetting<PlanState>(uid, PLAN_KEY, {
+    active: null,
+    progress: {},
+  });
   const done = new Set(s.progress[id] ?? []);
   if (done.has(day)) done.delete(day);
   else done.add(day);
-  await setSetting(PLAN_KEY, {
+  await setUserSetting(uid, PLAN_KEY, {
     active: s.active,
     progress: { ...s.progress, [id]: [...done].sort((a, b) => a - b) },
   });

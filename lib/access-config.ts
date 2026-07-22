@@ -17,8 +17,13 @@ export const SECTIONS = [
 ] as const;
 export type SectionKey = (typeof SECTIONS)[number]["key"];
 
-// Home is always available to a signed-in guest; the rest are grantable.
-export const GRANTABLE_SECTIONS = SECTIONS.filter((s) => s.key !== "home");
+// Home is always available to a signed-in guest. Health is admin-only — it
+// surfaces the owner's private WHOOP health data, which isn't per-user — so it's
+// NOT grantable. The rest are grantable.
+const NON_GRANTABLE = new Set<string>(["home", "health"]);
+export const GRANTABLE_SECTIONS = SECTIONS.filter(
+  (s) => !NON_GRANTABLE.has(s.key),
+);
 
 // Every top-level nav section (including admin-only Settings) — used by the
 // setting that controls which of them appear on the horizontal top bar.
