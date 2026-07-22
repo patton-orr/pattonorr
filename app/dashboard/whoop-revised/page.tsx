@@ -7,6 +7,8 @@ import {
   type RecoveryPoint,
   type StrainPoint,
 } from "@/lib/whoop-queries";
+import { syncNow } from "@/app/dashboard/whoop/actions";
+import { fmtEastern } from "@/lib/format";
 import {
   OverviewRings,
   StrainRecoveryChart,
@@ -61,15 +63,29 @@ export default async function WhoopRevised() {
   const week = buildWeek(rec, strain);
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-black dark:text-zinc-50">
-          WHOOP (revised)
-        </h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          A darker, WHOOP-app-styled take — a sandbox for new visuals, kept
-          separate from the original.
-        </p>
+    <div className="flex max-w-xl flex-col gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-semibold tracking-tight text-black dark:text-zinc-50">
+            WHOOP (revised)
+          </h1>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            A darker, WHOOP-app-styled take — a sandbox for new visuals.
+          </p>
+        </div>
+        <form action={syncNow} className="flex shrink-0 flex-col items-end gap-1">
+          <button
+            type="submit"
+            className="rounded-full border border-black/[.1] px-4 py-2 text-sm font-medium text-zinc-700 transition-colors pointer-coarse:py-3 hover:bg-black/[.04] dark:border-white/[.145] dark:text-zinc-300 dark:hover:bg-white/[.06]"
+          >
+            Sync now
+          </button>
+          {status.lastSync && (
+            <span className="text-xs text-zinc-500">
+              Synced {fmtEastern(status.lastSync)}
+            </span>
+          )}
+        </form>
       </div>
 
       <OverviewRings

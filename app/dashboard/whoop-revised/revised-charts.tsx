@@ -41,12 +41,12 @@ function Card({
 }) {
   return (
     <div
-      className="flex flex-col gap-4 rounded-3xl p-5 sm:p-6"
+      className="flex flex-col gap-3 rounded-2xl p-4"
       style={{ background: C.card, border: `1px solid ${C.grid}` }}
     >
       {title && (
         <h2
-          className="text-sm font-bold tracking-[0.15em] uppercase"
+          className="text-xs font-bold tracking-[0.14em] uppercase"
           style={{ color: C.text }}
         >
           {title}
@@ -77,9 +77,9 @@ function Ring({
   const c = 2 * Math.PI * r;
   const f = Math.max(0, Math.min(1, frac));
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div className="flex flex-col items-center gap-2">
       <div className="relative">
-        <svg viewBox={`0 0 ${size} ${size}`} className="h-24 w-24 sm:h-28 sm:w-28">
+        <svg viewBox={`0 0 ${size} ${size}`} className="h-16 w-16">
           <circle cx={cx} cy={cx} r={r} fill="none" stroke={C.track} strokeWidth={sw} />
           <circle
             cx={cx}
@@ -94,10 +94,10 @@ function Ring({
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-3xl font-extrabold" style={{ color: C.text }}>
+          <span className="text-lg font-extrabold" style={{ color: C.text }}>
             {big}
             {unit && (
-              <span className="text-lg font-bold" style={{ color: C.text }}>
+              <span className="text-xs font-bold" style={{ color: C.text }}>
                 {unit}
               </span>
             )}
@@ -105,7 +105,7 @@ function Ring({
         </div>
       </div>
       <span
-        className="text-xs font-bold tracking-widest uppercase"
+        className="text-[10px] font-bold tracking-widest uppercase"
         style={{ color: C.muted }}
       >
         {label}
@@ -247,49 +247,49 @@ export function RecoveryTrend({ week }: { week: Day[] }) {
 
   return (
     <Card title="Recovery Trend">
-      <div className="flex items-end justify-between gap-2" style={{ height: 200 }}>
+      <div className="flex items-end justify-between gap-1.5" style={{ height: 128 }}>
         {week.map((d, i) => (
-          <div key={i} className="flex flex-1 flex-col items-center justify-end gap-2" style={{ height: "100%" }}>
+          <div key={i} className="flex flex-1 flex-col items-center justify-end gap-1.5" style={{ height: "100%" }}>
             {d.recovery != null ? (
               <>
-                <span className="text-sm font-extrabold" style={{ color: recoveryColor(d.recovery) }}>
+                <span className="text-xs font-extrabold" style={{ color: recoveryColor(d.recovery) }}>
                   {Math.round(d.recovery)}%
                 </span>
                 <div
-                  className="w-full max-w-[34px] rounded-md"
+                  className="w-full max-w-[24px] rounded"
                   style={{
-                    height: `${Math.max(2, (d.recovery / 100) * 150)}px`,
+                    height: `${Math.max(2, (d.recovery / 100) * 92)}px`,
                     background: recoveryColor(d.recovery),
                   }}
                 />
               </>
             ) : (
-              <div className="w-full max-w-[34px] rounded-md" style={{ height: 2, background: C.track }} />
+              <div className="w-full max-w-[24px] rounded" style={{ height: 2, background: C.track }} />
             )}
-            <span className="text-[11px] font-semibold" style={{ color: C.muted }}>
+            <span className="text-[10px] font-semibold" style={{ color: C.muted }}>
               {d.dow}
             </span>
           </div>
         ))}
       </div>
 
-      <div className="flex flex-col gap-2 border-t pt-4" style={{ borderColor: C.grid }}>
-        <span className="text-xs font-bold tracking-widest uppercase" style={{ color: C.muted }}>
+      <div className="flex flex-col gap-2 border-t pt-3" style={{ borderColor: C.grid }}>
+        <span className="text-[11px] font-bold tracking-widest uppercase" style={{ color: C.muted }}>
           Recovery breakdown
         </span>
-        <div className="flex h-2.5 overflow-hidden rounded-full" style={{ background: C.inner }}>
+        <div className="flex h-2 overflow-hidden rounded-full" style={{ background: C.inner }}>
           <div style={{ width: `${(counts.green / total) * 100}%`, background: C.green }} />
           <div style={{ width: `${(counts.yellow / total) * 100}%`, background: C.yellow }} />
           <div style={{ width: `${(counts.red / total) * 100}%`, background: C.red }} />
         </div>
-        <div className="flex flex-wrap gap-x-6 gap-y-1">
+        <div className="flex flex-wrap gap-x-4 gap-y-1">
           {[
             { n: counts.green, c: C.green, l: "Green (67–99%)" },
             { n: counts.yellow, c: C.yellow, l: "Yellow (34–66%)" },
             { n: counts.red, c: C.red, l: "Red (1–33%)" },
           ].map((row) => (
-            <span key={row.l} className="flex items-center gap-2 text-sm" style={{ color: C.muted }}>
-              <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: row.c }} />
+            <span key={row.l} className="flex items-center gap-1.5 text-xs" style={{ color: C.muted }}>
+              <span className="inline-block h-2 w-2 rounded-sm" style={{ background: row.c }} />
               <span className="font-extrabold" style={{ color: C.text }}>{row.n}x</span>
               {row.l}
             </span>

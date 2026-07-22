@@ -189,7 +189,7 @@ export function DashboardNav({
               })}
             </nav>
             {subItems.length > 0 && (
-              <div className="flex items-center gap-0.5 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="flex items-center gap-5 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {subItems.map((it) => {
                   const on = active === it.href;
                   return (
@@ -197,10 +197,10 @@ export function DashboardNav({
                       key={it.href}
                       href={it.href}
                       aria-current={on ? "page" : undefined}
-                      className={`shrink-0 rounded-full px-3 py-1 text-[13px] whitespace-nowrap transition-colors ${
+                      className={`shrink-0 border-b-2 px-0.5 pb-1 text-[13px] whitespace-nowrap transition-colors ${
                         on
-                          ? "bg-black/[.06] font-medium text-black dark:bg-white/[.1] dark:text-zinc-50"
-                          : "text-zinc-500 hover:text-black dark:text-zinc-400 dark:hover:text-zinc-50"
+                          ? "border-black font-medium text-black dark:border-white dark:text-zinc-50"
+                          : "border-transparent text-zinc-500 hover:text-black dark:text-zinc-400 dark:hover:text-zinc-50"
                       }`}
                     >
                       {it.label}

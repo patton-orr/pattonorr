@@ -16,7 +16,7 @@ import {
 } from "./charts";
 import Link from "next/link";
 import { syncNow } from "./actions";
-import { fmtDate } from "@/lib/format";
+import { fmtDate, fmtEastern } from "@/lib/format";
 import { AvgToggle, parseAvg, parseRange, rangeLabel } from "./range-toggle";
 import { RangeSlider } from "./range-slider";
 import { REC_ZONES } from "./zones-config";
@@ -73,7 +73,7 @@ function Header({ lastSync }: { lastSync: string | null }) {
       <form action={syncNow} className="flex items-center gap-3">
         {lastSync ? (
           <span className="text-xs text-zinc-500">
-            Synced {new Date(lastSync).toLocaleString()}
+            Synced {fmtEastern(lastSync)}
           </span>
         ) : null}
         <button
