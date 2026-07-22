@@ -19,12 +19,12 @@ type Idea = {
 
 const ideas: Idea[] = [
   {
-    title: "Email on the pattonorr.com domain",
+    title: "App-style mobile navigation",
     description:
-      "A real name@pattonorr.com address. Simplest inbound: Cloudflare Email Routing (free) forwards mail to Gmail via MX + SPF records at the DNS host — no app code. To send as the address: Gmail 'Send mail as' through an SMTP relay, or a transactional provider (Resend/Postmark) with DKIM + DMARC for anything the app itself sends (e.g. guest invites, notifications). Google Workspace (~$6/user/mo) gives a full mailbox if a forwarding alias isn't enough.",
+      "On phones, swap the top bar for a native-app feel: a fixed bottom navigation bar with icons for the top-level sections (Home, Health, Faith, …), and icons throughout the nav generally. Desktop keeps the current top bar. Needs an icon set, a mobile-breakpoint layout, active-state styling, and iOS safe-area handling for the home indicator.",
     complexity: "Medium",
     timeLift:
-      "~30–60 min for inbound forwarding (Cloudflare Email Routing + DNS); +~1–2 hrs to add send-as or a transactional provider with DKIM/DMARC.",
+      "~half a day for a bottom bar with icons on the main sections; more to bring icons across the whole nav and polish transitions.",
   },
   {
     title: "Push Notifications",

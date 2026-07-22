@@ -95,13 +95,19 @@ export function DashboardNav({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  // Submenus start collapsed in the drawer; the user expands what they want.
+  const [collapsed, setCollapsed] = useState<Set<string>>(
+    () => new Set(NAV.filter(isGroup).map((g) => g.label)),
+  );
 
   // Only sections this user may see. Settings is admin-only; everything else is
   // gated by the granted section list.
   const visible = NAV.filter((e) =>
     e.section === "settings" ? isAdmin : sections.includes(e.section),
   );
+  // Settings drops to the bottom of the drawer, apart from the rest.
+  const mainEntries = visible.filter((e) => e.section !== "settings");
+  const settingsEntry = visible.find((e) => e.section === "settings");
   const active = activeHref(pathname, visible);
   const top = activeTop(pathname, visible);
   const subItems = top && isGroup(top) ? top.items : [];
@@ -131,69 +137,73 @@ export function DashboardNav({
   return (
     <>
       <header className="sticky top-0 z-30 border-b border-black/[.08] bg-white/90 backdrop-blur dark:border-white/[.145] dark:bg-black/90">
-        {/* Row 1: menu + brand + top-level sections */}
-        <div className="flex items-center gap-2 px-3 sm:gap-3 sm:px-5">
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            aria-label="Open menu"
-            aria-expanded={open}
-            className="-ml-1 shrink-0 rounded-lg p-2 text-zinc-700 transition-colors hover:bg-black/[.05] dark:text-zinc-300 dark:hover:bg-white/[.08]"
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
-              <path d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-          <Link
-            href="/dashboard"
-            className="shrink-0 text-base font-semibold tracking-tight text-black transition-opacity hover:opacity-70 dark:text-zinc-50"
-          >
-            Patton Orr
-          </Link>
-          <span className="mx-0.5 h-5 w-px shrink-0 bg-black/10 dark:bg-white/15" aria-hidden />
-          <nav className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {visible.map((e) => {
-              const on = top?.label === e.label;
-              return (
-                <Link
-                  key={e.href}
-                  href={e.href}
-                  aria-current={on ? "page" : undefined}
-                  className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors ${
-                    on
-                      ? "bg-black/[.06] text-black dark:bg-white/[.1] dark:text-zinc-50"
-                      : "text-zinc-500 hover:bg-black/[.04] hover:text-black dark:text-zinc-400 dark:hover:bg-white/[.06] dark:hover:text-zinc-50"
-                  }`}
-                >
-                  {e.label}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-
-        {/* Row 2: sub-nav for the active section (only if it has children) */}
-        {subItems.length > 0 && (
-          <div className="flex items-center gap-0.5 overflow-x-auto border-t border-black/[.05] px-3 py-1.5 sm:px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden dark:border-white/[.08]">
-            {subItems.map((it) => {
-              const on = active === it.href;
-              return (
-                <Link
-                  key={it.href}
-                  href={it.href}
-                  aria-current={on ? "page" : undefined}
-                  className={`shrink-0 rounded-full px-2.5 py-1 text-[13px] whitespace-nowrap transition-colors ${
-                    on
-                      ? "bg-black/[.06] font-medium text-black dark:bg-white/[.1] dark:text-zinc-50"
-                      : "text-zinc-500 hover:text-black dark:text-zinc-400 dark:hover:text-zinc-50"
-                  }`}
-                >
-                  {it.label}
-                </Link>
-              );
-            })}
+        <div className="flex items-start gap-2 px-3 sm:gap-3 sm:px-5">
+          {/* Left: menu + brand, aligned to the top-level row */}
+          <div className="flex shrink-0 items-center gap-2 py-2 sm:gap-3">
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              aria-label="Open menu"
+              aria-expanded={open}
+              className="-ml-1 rounded-lg p-2 text-zinc-700 transition-colors hover:bg-black/[.05] dark:text-zinc-300 dark:hover:bg-white/[.08]"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
+                <path d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            <Link
+              href="/dashboard"
+              className="text-base font-semibold tracking-tight text-black transition-opacity hover:opacity-70 dark:text-zinc-50"
+            >
+              Patton Orr
+            </Link>
+            <span className="ml-0.5 h-5 w-px bg-black/10 dark:bg-white/15" aria-hidden />
           </div>
-        )}
+
+          {/* Right column: top-level row + sub-nav, both left-aligned together */}
+          <div className="flex min-w-0 flex-1 flex-col">
+            <nav className="flex items-center gap-0.5 overflow-x-auto py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {visible.map((e) => {
+                const on = top?.label === e.label;
+                return (
+                  <Link
+                    key={e.href}
+                    href={e.href}
+                    aria-current={on ? "page" : undefined}
+                    className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors ${
+                      on
+                        ? "bg-black/[.06] text-black dark:bg-white/[.1] dark:text-zinc-50"
+                        : "text-zinc-500 hover:bg-black/[.04] hover:text-black dark:text-zinc-400 dark:hover:bg-white/[.06] dark:hover:text-zinc-50"
+                    }`}
+                  >
+                    {e.label}
+                  </Link>
+                );
+              })}
+            </nav>
+            {subItems.length > 0 && (
+              <div className="flex items-center gap-0.5 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {subItems.map((it) => {
+                  const on = active === it.href;
+                  return (
+                    <Link
+                      key={it.href}
+                      href={it.href}
+                      aria-current={on ? "page" : undefined}
+                      className={`shrink-0 rounded-full px-3 py-1 text-[13px] whitespace-nowrap transition-colors ${
+                        on
+                          ? "bg-black/[.06] font-medium text-black dark:bg-white/[.1] dark:text-zinc-50"
+                          : "text-zinc-500 hover:text-black dark:text-zinc-400 dark:hover:text-zinc-50"
+                      }`}
+                    >
+                      {it.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
       </header>
 
       {/* Full-hierarchy drawer */}
@@ -234,7 +244,7 @@ export function DashboardNav({
             Top sections
           </div>
           <nav className="flex flex-col gap-0.5">
-            {visible.map((entry) =>
+            {mainEntries.map((entry) =>
               isGroup(entry) ? (
                 <div key={entry.label} className="flex flex-col">
                   <div className="flex items-center gap-0.5">
@@ -297,20 +307,40 @@ export function DashboardNav({
               ),
             )}
           </nav>
-          <form
-            className="mt-auto flex flex-col gap-3 border-t border-black/[.08] pt-4 dark:border-white/[.145]"
-            action={signOutAction}
-          >
-            {email ? (
-              <span className="truncate px-3 text-xs text-zinc-500">{email}</span>
-            ) : null}
-            <button
-              type="submit"
-              className="rounded-lg px-3 py-2 text-left text-sm font-medium text-zinc-600 transition-colors pointer-coarse:py-3 hover:bg-black/[.04] hover:text-black dark:text-zinc-400 dark:hover:bg-white/[.06] dark:hover:text-zinc-50"
+          <div className="mt-auto flex flex-col gap-2">
+            {settingsEntry && (
+              <div className="border-t border-black/[.06] pt-2 dark:border-white/[.08]">
+                <Link
+                  href={settingsEntry.href}
+                  onClick={() => setOpen(false)}
+                  aria-current={settingsEntry.href === active ? "page" : undefined}
+                  className={`block rounded-lg px-3 py-2 text-sm font-medium transition-colors pointer-coarse:py-3 ${
+                    settingsEntry.href === active
+                      ? "bg-black/[.06] text-black dark:bg-white/[.1] dark:text-zinc-50"
+                      : "text-zinc-600 hover:bg-black/[.04] hover:text-black dark:text-zinc-400 dark:hover:bg-white/[.06] dark:hover:text-zinc-50"
+                  }`}
+                >
+                  {settingsEntry.label}
+                </Link>
+              </div>
+            )}
+            <form
+              className="flex flex-col gap-3 border-t border-black/[.08] pt-4 dark:border-white/[.145]"
+              action={signOutAction}
             >
-              Sign out
-            </button>
-          </form>
+              {email ? (
+                <span className="truncate px-3 text-xs text-zinc-500">
+                  {email}
+                </span>
+              ) : null}
+              <button
+                type="submit"
+                className="rounded-lg px-3 py-2 text-left text-sm font-medium text-zinc-600 transition-colors pointer-coarse:py-3 hover:bg-black/[.04] hover:text-black dark:text-zinc-400 dark:hover:bg-white/[.06] dark:hover:text-zinc-50"
+              >
+                Sign out
+              </button>
+            </form>
+          </div>
         </div>
       </aside>
     </>
