@@ -14,7 +14,11 @@ const SECTIONS = [
 export function SettingsNav({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
   const sections = isAdmin
-    ? [...SECTIONS, { label: "Access", href: "/dashboard/settings/access" }]
+    ? [
+        ...SECTIONS,
+        { label: "Navigation", href: "/dashboard/settings/navigation" },
+        { label: "Access", href: "/dashboard/settings/access" },
+      ]
     : SECTIONS;
   return (
     <nav className="flex gap-1 overflow-x-auto border-b border-black/[.06] pb-2 md:w-44 md:shrink-0 md:flex-col md:border-b-0 md:pb-0 dark:border-white/[.1]">

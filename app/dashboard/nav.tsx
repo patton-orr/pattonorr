@@ -91,10 +91,12 @@ export function DashboardNav({
   email,
   sections,
   isAdmin,
+  barHidden = [],
 }: {
   email?: string;
   sections: string[];
   isAdmin: boolean;
+  barHidden?: string[];
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -111,6 +113,8 @@ export function DashboardNav({
   // Settings drops to the bottom of the drawer, apart from the rest.
   const mainEntries = visible.filter((e) => e.section !== "settings");
   const settingsEntry = visible.find((e) => e.section === "settings");
+  // The horizontal top bar can hide sections (they stay in the drawer).
+  const barVisible = visible.filter((e) => !barHidden.includes(e.section));
   const active = activeHref(pathname, visible);
   const top = activeTop(pathname, visible);
   const subItems = top && isGroup(top) ? top.items : [];
@@ -166,7 +170,7 @@ export function DashboardNav({
           {/* Right column: top-level row + sub-nav, both left-aligned together */}
           <div className="flex min-w-0 flex-1 flex-col">
             <nav className="flex items-center gap-0.5 overflow-x-auto py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {visible.map((e) => {
+              {barVisible.map((e) => {
                 const on = top?.label === e.label;
                 return (
                   <Link

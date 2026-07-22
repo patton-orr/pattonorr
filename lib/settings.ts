@@ -42,6 +42,21 @@ export async function getFaithAutoHighlight(): Promise<boolean> {
   return getSetting<boolean>(FAITH_AUTO_HIGHLIGHT_KEY, false);
 }
 
+// --- Navigation preferences ---
+
+export const NAV_TOPBAR_HIDDEN_KEY = "nav.topbarHidden";
+
+// Section keys hidden from the horizontal top bar (they still show in the full
+// hamburger menu). Default: none hidden.
+export async function getNavTopbarHidden(): Promise<string[]> {
+  const v = await getSetting<string[]>(NAV_TOPBAR_HIDDEN_KEY, []);
+  return Array.isArray(v) ? v.map(String) : [];
+}
+
+export async function setNavTopbarHidden(hidden: string[]) {
+  await setSetting(NAV_TOPBAR_HIDDEN_KEY, [...new Set(hidden.map(String))]);
+}
+
 // --- Home preferences ---
 
 export const HOME_SHOW_WEATHER_KEY = "home.showWeather";

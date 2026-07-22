@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { allowedSections } from "@/lib/access";
 import { isAdmin } from "@/lib/access-config";
+import { getNavTopbarHidden } from "@/lib/settings";
 import { DashboardNav } from "./nav";
 import { ContentArea } from "./content-area";
 
@@ -14,12 +15,20 @@ export default async function DashboardLayout({
 }) {
   const session = await auth();
   const email = session?.user?.email ?? undefined;
-  const sections = await allowedSections(email);
+  const [sections, barHidden] = await Promise.all([
+    allowedSections(email),
+    getNavTopbarHidden(),
+  ]);
   const admin = isAdmin(email);
 
   return (
     <div className="flex min-h-full flex-1 flex-col font-sans">
-      <DashboardNav email={email} sections={sections} isAdmin={admin} />
+      <DashboardNav
+        email={email}
+        sections={sections}
+        isAdmin={admin}
+        barHidden={barHidden}
+      />
       <ContentArea sections={sections} isAdmin={admin}>
         {children}
       </ContentArea>

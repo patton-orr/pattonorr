@@ -20,6 +20,13 @@ export type SectionKey = (typeof SECTIONS)[number]["key"];
 // Home is always available to a signed-in guest; the rest are grantable.
 export const GRANTABLE_SECTIONS = SECTIONS.filter((s) => s.key !== "home");
 
+// Every top-level nav section (including admin-only Settings) — used by the
+// setting that controls which of them appear on the horizontal top bar.
+export const NAV_SECTIONS = [
+  ...SECTIONS,
+  { key: "settings", label: "Settings" },
+] as const;
+
 export function isAdmin(email?: string | null): boolean {
   return !!email && email.trim().toLowerCase() === ADMIN_EMAIL;
 }
