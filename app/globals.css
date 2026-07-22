@@ -157,3 +157,91 @@ body {
     --hl-pink: rgba(222, 140, 170, 0.32);
   }
 }
+
+/* --- Bold = immersive "color rush" skins ---------------------------------
+   Bold flips the whole shell, not just the accent. Tailwind v4 utilities
+   resolve var(--color-*), so remapping the neutral palette inside the
+   [data-accent] wrapper re-skins cards, text, and borders by inheritance — no
+   per-component edits. Because the app already supports OS dark mode, every
+   `text-black` has a `dark:` partner; so the base neutrals cover the light-OS
+   utilities and a nested prefers-color-scheme: dark block covers the `dark:`
+   ones — the look is fixed regardless of the viewer's OS. These blocks come
+   after the accent section on purpose, so they win the cascade. */
+
+/* Vanderbilt Bold — black + gold, always dark */
+[data-accent="vandy-bold"] {
+  color-scheme: dark;
+  background: #0d0d0d;
+  color: #f0dca6;
+  --background: #0d0d0d;
+  --foreground: #f0dca6;
+  --nav-pill-bg: #cfae70;
+  --nav-pill-fg: #1c1c1c;
+  --subnav-border: #cfae70;
+  --subnav-fg: #f3e4b5;
+  --header-border: rgba(207, 174, 112, 0.55);
+  --color-white: #1a1a1a;
+  --color-black: #f0dca6;
+  --color-zinc-50: #f0dca6;
+  --color-zinc-100: #ecd9a6;
+  --color-zinc-200: #8f7c50;
+  --color-zinc-300: #c9ad72;
+  --color-zinc-400: #9c8654;
+  --color-zinc-500: #b6995f;
+  --color-zinc-600: #c9ad72;
+  --color-zinc-700: #ecd9a6;
+  --color-zinc-800: #f2e3ba;
+  --color-zinc-900: #f7ecc9;
+}
+@media (prefers-color-scheme: dark) {
+  [data-accent="vandy-bold"] {
+    --color-white: #1a1a1a;
+    --color-black: #1a1a1a;
+    --color-zinc-50: #f0dca6;
+    --color-zinc-300: #d9c187;
+    --color-zinc-400: #b6995f;
+    --color-zinc-600: #c9ad72;
+  }
+}
+body:has(#app-accent[data-accent="vandy-bold"]) {
+  background: #0d0d0d;
+}
+
+/* Tar Heels Bold — navy + Carolina blue, always dark */
+[data-accent="unc-bold"] {
+  color-scheme: dark;
+  background: #0a1930;
+  color: #e6f1fb;
+  --background: #0a1930;
+  --foreground: #e6f1fb;
+  --nav-pill-bg: #4b9cd3;
+  --nav-pill-fg: #08213f;
+  --subnav-border: #7fbce8;
+  --subnav-fg: #e6f1fb;
+  --header-border: rgba(75, 156, 211, 0.55);
+  --color-white: #13294b;
+  --color-black: #e6f1fb;
+  --color-zinc-50: #e6f1fb;
+  --color-zinc-100: #dcebf8;
+  --color-zinc-200: #6f9ec6;
+  --color-zinc-300: #a9cbe8;
+  --color-zinc-400: #7ba9cf;
+  --color-zinc-500: #93badd;
+  --color-zinc-600: #a9cbe8;
+  --color-zinc-700: #dcebf8;
+  --color-zinc-800: #e6f1fb;
+  --color-zinc-900: #f2f8fd;
+}
+@media (prefers-color-scheme: dark) {
+  [data-accent="unc-bold"] {
+    --color-white: #13294b;
+    --color-black: #13294b;
+    --color-zinc-50: #e6f1fb;
+    --color-zinc-300: #cfe4f5;
+    --color-zinc-400: #9dc3e6;
+    --color-zinc-600: #a9cbe8;
+  }
+}
+body:has(#app-accent[data-accent="unc-bold"]) {
+  background: #0a1930;
+}

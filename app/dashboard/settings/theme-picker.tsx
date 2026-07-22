@@ -13,17 +13,18 @@ type Opt = {
   id: ThemeId;
   school: string;
   variant?: string;
+  bg: string; // the mini-page the pill sits on (dark for Bold)
   pillBg: string;
   pillFg: string;
   line: string;
 };
 
 const OPTS: Opt[] = [
-  { id: "standard", school: "Standard", pillBg: "rgba(0,0,0,.06)", pillFg: "#111827", line: "#111827" },
-  { id: "unc-normal", school: "Tar Heels", variant: "Normal", pillBg: "rgba(75,156,211,.2)", pillFg: "#13294B", line: "#4B9CD3" },
-  { id: "unc-bold", school: "Tar Heels", variant: "Bold", pillBg: "#4B9CD3", pillFg: "#13294B", line: "#13294B" },
-  { id: "vandy-normal", school: "Vanderbilt", variant: "Normal", pillBg: "rgba(207,174,112,.28)", pillFg: "#1C1C1C", line: "#B49248" },
-  { id: "vandy-bold", school: "Vanderbilt", variant: "Bold", pillBg: "#1C1C1C", pillFg: "#CFAE70", line: "#B49248" },
+  { id: "standard", school: "Standard", bg: "#f4f4f5", pillBg: "rgba(0,0,0,.06)", pillFg: "#111827", line: "#111827" },
+  { id: "unc-normal", school: "Tar Heels", variant: "Normal", bg: "#f4f4f5", pillBg: "rgba(75,156,211,.2)", pillFg: "#13294B", line: "#4B9CD3" },
+  { id: "unc-bold", school: "Tar Heels", variant: "Bold", bg: "#0a1930", pillBg: "#4B9CD3", pillFg: "#08213F", line: "#7fbce8" },
+  { id: "vandy-normal", school: "Vanderbilt", variant: "Normal", bg: "#f4f4f5", pillBg: "rgba(207,174,112,.28)", pillFg: "#1C1C1C", line: "#B49248" },
+  { id: "vandy-bold", school: "Vanderbilt", variant: "Bold", bg: "#0d0d0d", pillBg: "#CFAE70", pillFg: "#1c1c1c", line: "#CFAE70" },
 ];
 
 function setLiveAccent(id: string) {
@@ -75,7 +76,10 @@ export function ThemePicker({ current }: { current: ThemeId }) {
                   : "border-black/[.08] hover:border-black/20 dark:border-white/[.145] dark:hover:border-white/30"
               }`}
             >
-              <span className="flex flex-col items-start gap-1.5">
+              <span
+                className="flex w-full flex-col items-start gap-1.5 rounded-lg border border-black/10 p-2 dark:border-white/10"
+                style={{ background: o.bg }}
+              >
                 <span
                   className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
                   style={{ background: o.pillBg, color: o.pillFg }}
