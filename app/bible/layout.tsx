@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { allowedSections } from "@/lib/access";
 import { isAdmin } from "@/lib/access-config";
-import { getNavTopbarHidden } from "@/lib/settings";
+import { currentUserId } from "@/lib/current-user";
+import { getNavTopbarHidden, getUserTheme } from "@/lib/settings";
 import { DashboardNav } from "@/app/dashboard/nav";
 
 // The Bible section (reader + landing) now renders like any other page: under
@@ -15,9 +16,10 @@ export default async function BibleLayout({
 }) {
   const session = await auth();
   const email = session?.user?.email ?? undefined;
-  const [sections, barHidden] = await Promise.all([
+  const [sections, barHidden, theme] = await Promise.all([
     allowedSections(email),
     getNavTopbarHidden(),
+    getUserTheme(await currentUserId()),
   ]);
   const admin = isAdmin(email);
 
@@ -25,13 +27,12 @@ export default async function BibleLayout({
   if (!admin && !sections.includes("faith")) redirect("/dashboard");
 
   return (
-    <div className="flex min-h-full flex-1 flex-col font-sans">
-      <DashboardNav
-        email={email}
-        sections={sections}
-        isAdmin={admin}
-        barHidden={barHidden}
-      />
+    <div
+      id="app-accent"
+      data-accent={theme}
+      className="flex min-h-full flex-1 flex-col font-sans"
+    >
+      <DashboardNav email={email} sections={sections} barHidden={barHidden} />
       <main
         className="faith-theme min-w-0 flex-1 px-5 py-6 sm:px-8 sm:py-8"
         style={{ background: "var(--reader-bg)", color: "var(--reader-fg)" }}

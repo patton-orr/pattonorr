@@ -79,9 +79,35 @@ export async function getWhoopSmoothing(): Promise<number> {
 export const FAITH_AUTO_HIGHLIGHT_KEY = "faith.autoHighlight";
 
 // When on, selecting text in the reader creates a highlight immediately with
-// the default color — no color-picker confirm. Off by default.
-export async function getFaithAutoHighlight(): Promise<boolean> {
-  return getSetting<boolean>(FAITH_AUTO_HIGHLIGHT_KEY, false);
+// the default color — no color-picker confirm. Off by default. Per-user.
+export async function getFaithAutoHighlight(
+  userId: string | null,
+): Promise<boolean> {
+  return getUserSetting<boolean>(userId, FAITH_AUTO_HIGHLIGHT_KEY, false);
+}
+
+// --- Color theme (per-user accent scheme) ---
+
+export const THEME_KEY = "app.theme";
+export const THEMES = [
+  "standard",
+  "unc-normal",
+  "unc-bold",
+  "vandy-normal",
+  "vandy-bold",
+] as const;
+export type ThemeId = (typeof THEMES)[number];
+export const DEFAULT_THEME: ThemeId = "standard";
+const isTheme = (v: unknown): v is ThemeId =>
+  typeof v === "string" && (THEMES as readonly string[]).includes(v);
+
+export async function getUserTheme(userId: string | null): Promise<ThemeId> {
+  const t = await getUserSetting<ThemeId>(userId, THEME_KEY, DEFAULT_THEME);
+  return isTheme(t) ? t : DEFAULT_THEME;
+}
+
+export async function setUserTheme(userId: string | null, theme: ThemeId) {
+  await setUserSetting(userId, THEME_KEY, isTheme(theme) ? theme : DEFAULT_THEME);
 }
 
 // --- Navigation preferences ---
@@ -104,6 +130,9 @@ export async function setNavTopbarHidden(hidden: string[]) {
 export const HOME_SHOW_WEATHER_KEY = "home.showWeather";
 
 // Whether the weather widget shows on the dashboard home. Off by default.
-export async function getHomeShowWeather(): Promise<boolean> {
-  return getSetting<boolean>(HOME_SHOW_WEATHER_KEY, false);
+// Per-user.
+export async function getHomeShowWeather(
+  userId: string | null,
+): Promise<boolean> {
+  return getUserSetting<boolean>(userId, HOME_SHOW_WEATHER_KEY, false);
 }

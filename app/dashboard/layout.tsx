@@ -1,7 +1,8 @@
 import { auth } from "@/auth";
 import { allowedSections } from "@/lib/access";
 import { isAdmin } from "@/lib/access-config";
-import { getNavTopbarHidden } from "@/lib/settings";
+import { currentUserId } from "@/lib/current-user";
+import { getNavTopbarHidden, getUserTheme } from "@/lib/settings";
 import { DashboardNav } from "./nav";
 import { ContentArea } from "./content-area";
 
@@ -15,20 +16,20 @@ export default async function DashboardLayout({
 }) {
   const session = await auth();
   const email = session?.user?.email ?? undefined;
-  const [sections, barHidden] = await Promise.all([
+  const [sections, barHidden, theme] = await Promise.all([
     allowedSections(email),
     getNavTopbarHidden(),
+    getUserTheme(await currentUserId()),
   ]);
   const admin = isAdmin(email);
 
   return (
-    <div className="flex min-h-full flex-1 flex-col font-sans">
-      <DashboardNav
-        email={email}
-        sections={sections}
-        isAdmin={admin}
-        barHidden={barHidden}
-      />
+    <div
+      id="app-accent"
+      data-accent={theme}
+      className="flex min-h-full flex-1 flex-col font-sans"
+    >
+      <DashboardNav email={email} sections={sections} barHidden={barHidden} />
       <ContentArea sections={sections} isAdmin={admin}>
         {children}
       </ContentArea>

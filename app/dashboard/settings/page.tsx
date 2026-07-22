@@ -1,15 +1,19 @@
 import { auth } from "@/auth";
-import { getHomeShowWeather } from "@/lib/settings";
+import { getHomeShowWeather, getUserTheme } from "@/lib/settings";
+import { currentUserId } from "@/lib/current-user";
 import { SettingsSection } from "./settings-section";
 import { ToggleSetting } from "./toggle-setting";
+import { ThemePicker } from "./theme-picker";
 import { saveShowWeather } from "./actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function GeneralSettings() {
-  const [session, showWeather] = await Promise.all([
+  const uid = await currentUserId();
+  const [session, showWeather, theme] = await Promise.all([
     auth(),
-    getHomeShowWeather(),
+    getHomeShowWeather(uid),
+    getUserTheme(uid),
   ]);
 
   return (
@@ -17,6 +21,7 @@ export default async function GeneralSettings() {
       title="General"
       description="App-wide preferences and your account."
     >
+      <ThemePicker current={theme} />
       <ToggleSetting
         label="Show weather on Home"
         description="Display the current weather at the top of your dashboard home."

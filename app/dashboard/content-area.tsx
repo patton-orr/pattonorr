@@ -6,7 +6,8 @@ import { sectionForPath } from "@/lib/access-config";
 
 // The dashboard content column. On faith routes it carries the warm sepia
 // `.faith-theme`. It also gates sections a guest hasn't been granted (admin sees
-// everything; Settings is admin-only) — a UX guard for direct URLs.
+// everything; Settings is open to all — its admin-only panes guard themselves)
+// — a UX guard for direct URLs.
 export function ContentArea({
   children,
   sections,
@@ -20,13 +21,15 @@ export function ContentArea({
   const faith =
     pathname === "/dashboard/faith" || pathname.startsWith("/dashboard/bible");
   const section = sectionForPath(pathname);
-  // Home is always available to any signed-in user (the guest welcome lives
-  // there); Settings is admin-only; everything else must be granted.
+  // Home and Settings are available to any signed-in user (the guest welcome
+  // lives on Home; Settings holds personal prefs, with admin-only panes guarding
+  // themselves). Everything else must be granted.
   const denied =
     !isAdmin &&
     section !== null &&
     section !== "home" &&
-    (section === "settings" || !sections.includes(section));
+    section !== "settings" &&
+    !sections.includes(section);
 
   return (
     <main

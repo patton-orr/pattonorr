@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { allowedSections } from "@/lib/access";
 import { isAdmin } from "@/lib/access-config";
 import { SettingsNav } from "./settings-nav";
 
@@ -10,7 +11,9 @@ export default async function SettingsLayout({
   children: React.ReactNode;
 }) {
   const session = await auth();
-  const admin = isAdmin(session?.user?.email);
+  const email = session?.user?.email;
+  const admin = isAdmin(email);
+  const sections = await allowedSections(email);
 
   return (
     <div className="flex max-w-4xl flex-col gap-6">
@@ -18,7 +21,7 @@ export default async function SettingsLayout({
         Settings
       </h1>
       <div className="flex flex-col gap-6 md:flex-row md:gap-10">
-        <SettingsNav isAdmin={admin} />
+        <SettingsNav isAdmin={admin} sections={sections} />
         <div className="min-w-0 flex-1">{children}</div>
       </div>
     </div>

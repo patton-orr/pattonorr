@@ -1,4 +1,5 @@
 import { getFaithAutoHighlight } from "@/lib/settings";
+import { currentUserId } from "@/lib/current-user";
 import { SettingsSection } from "../settings-section";
 import { ToggleSetting } from "../toggle-setting";
 import { saveAutoHighlight } from "../actions";
@@ -6,7 +7,7 @@ import { saveAutoHighlight } from "../actions";
 export const dynamic = "force-dynamic";
 
 export default async function FaithSettings() {
-  const autoHighlight = await getFaithAutoHighlight();
+  const autoHighlight = await getFaithAutoHighlight(await currentUserId());
 
   return (
     <SettingsSection

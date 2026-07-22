@@ -4,6 +4,7 @@ import { BOOKS, bookBySlug, neighbors, refFor } from "@/lib/bible-books";
 import { fetchPassage } from "@/lib/esv";
 import { getBookmarks, getChapterNotes } from "@/lib/bible";
 import { getFaithAutoHighlight } from "@/lib/settings";
+import { currentUserId } from "@/lib/current-user";
 import { saveBookmarkAction, removeBookmarkAction } from "@/app/dashboard/bible/actions";
 import { EsvStyles, ESV_COPYRIGHT } from "../../esv-styles";
 import { ChapterPicker } from "../../chapter-picker";
@@ -52,7 +53,7 @@ export default async function Reader({
     fetchPassage(ref),
     getBookmarks(),
     getChapterNotes(ref),
-    getFaithAutoHighlight(),
+    getFaithAutoHighlight(await currentUserId()),
   ]);
   const saved = bookmarks.some((b) => b.ref === ref);
   const { prev, next } = neighbors(slug, chapter);

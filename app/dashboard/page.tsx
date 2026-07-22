@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { isAdmin } from "@/lib/access-config";
+import { currentUserId } from "@/lib/current-user";
 import { getHomeShowWeather } from "@/lib/settings";
 import { VerseOfTheDay } from "./verse-of-the-day";
 import { WeatherCard } from "./weather-card";
@@ -27,7 +28,7 @@ export default async function Dashboard() {
     );
   }
 
-  const showWeather = await getHomeShowWeather();
+  const showWeather = await getHomeShowWeather(await currentUserId());
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">

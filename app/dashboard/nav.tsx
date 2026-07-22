@@ -90,12 +90,10 @@ function Chevron({ open }: { open: boolean }) {
 export function DashboardNav({
   email,
   sections,
-  isAdmin,
   barHidden = [],
 }: {
   email?: string;
   sections: string[];
-  isAdmin: boolean;
   barHidden?: string[];
 }) {
   const pathname = usePathname();
@@ -105,10 +103,12 @@ export function DashboardNav({
     () => new Set(NAV.filter(isGroup).map((g) => g.label)),
   );
 
-  // Only sections this user may see. Settings is admin-only; everything else is
-  // gated by the granted section list.
-  const visible = NAV.filter((e) =>
-    e.section === "settings" ? isAdmin : sections.includes(e.section),
+  // Sections this user may see. Settings is open to every signed-in user (it
+  // holds their personal prefs — theme, weather, highlighting); the admin-only
+  // panes inside it are gated on their own pages. Everything else is gated by
+  // the granted section list.
+  const visible = NAV.filter(
+    (e) => e.section === "settings" || sections.includes(e.section),
   );
   // Settings drops to the bottom of the drawer, apart from the rest.
   const mainEntries = visible.filter((e) => e.section !== "settings");
@@ -143,7 +143,7 @@ export function DashboardNav({
 
   return (
     <>
-      <header className="sticky top-0 z-30 border-b border-black/[.08] bg-white/90 backdrop-blur dark:border-white/[.145] dark:bg-black/90">
+      <header className="sticky top-0 z-30 border-b border-[var(--header-border)] bg-white/90 backdrop-blur dark:bg-black/90">
         <div className="flex items-start gap-2 px-3 sm:gap-3 sm:px-5">
           {/* Left: menu + brand, aligned to the top-level row */}
           <div className="flex shrink-0 items-center gap-2 py-2 sm:gap-3">
@@ -179,7 +179,7 @@ export function DashboardNav({
                     aria-current={on ? "page" : undefined}
                     className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors ${
                       on
-                        ? "bg-black/[.06] text-black dark:bg-white/[.1] dark:text-zinc-50"
+                        ? "bg-[var(--nav-pill-bg)] text-[var(--nav-pill-fg)]"
                         : "text-zinc-500 hover:bg-black/[.04] hover:text-black dark:text-zinc-400 dark:hover:bg-white/[.06] dark:hover:text-zinc-50"
                     }`}
                   >
@@ -199,7 +199,7 @@ export function DashboardNav({
                       aria-current={on ? "page" : undefined}
                       className={`shrink-0 border-b-2 px-0.5 pb-1 text-[13px] whitespace-nowrap transition-colors ${
                         on
-                          ? "border-black font-medium text-black dark:border-white dark:text-zinc-50"
+                          ? "border-[var(--subnav-border)] font-medium text-[var(--subnav-fg)]"
                           : "border-transparent text-zinc-500 hover:text-black dark:text-zinc-400 dark:hover:text-zinc-50"
                       }`}
                     >
