@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { icons } from "@/lib/brand";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -9,10 +10,13 @@ export default function manifest(): MetadataRoute.Manifest {
     display: "standalone",
     background_color: "#0a0a0a",
     theme_color: "#0a0a0a",
+    // Icon color follows the environment (black in production, red everywhere
+    // else) — see lib/brand.ts.
     icons: [
-      { src: "/icon.png", sizes: "512x512", type: "image/png", purpose: "any" },
-      { src: "/icon.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
-      { src: "/apple-icon.png", sizes: "180x180", type: "image/png" },
+      { src: icons.medium, sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: icons.large, sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: icons.large, sizes: "512x512", type: "image/png", purpose: "maskable" },
+      { src: icons.apple, sizes: "180x180", type: "image/png" },
     ],
   };
 }

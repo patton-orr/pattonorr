@@ -14,13 +14,10 @@ export const authConfig = {
     // This reads the session from the JWT — no database access.
     authorized({ auth, request }) {
       const { pathname } = request.nextUrl;
-      const publicPaths = [
-        "/",
-        "/manifest.webmanifest",
-        "/icon.png",
-        "/apple-icon.png",
-      ];
+      const publicPaths = ["/", "/manifest.webmanifest"];
       if (publicPaths.includes(pathname)) return true;
+      // Favicons / app icons — must load on the signed-out homepage too.
+      if (pathname.startsWith("/icons/")) return true;
       // The WHOOP cron sync has no session; it's guarded by CRON_SECRET.
       if (pathname === "/api/whoop/sync") return true;
       return Boolean(auth?.user);
