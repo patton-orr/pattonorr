@@ -15,8 +15,9 @@ import {
 } from "./actions";
 
 // The full menu and the top bar are ordered independently. Settings is pinned
-// to the bottom of the drawer by the nav itself, so it isn't in the menu list.
-const MENU_SECTIONS = NAV_SECTIONS.filter((s) => s.key !== "settings");
+// by the nav itself — bottom of the drawer, and a gear at the far right of the
+// top bar — so it isn't orderable in either list.
+const ORDERABLE = NAV_SECTIONS.filter((s) => s.key !== "settings");
 
 function toItems(
   secs: readonly { key: string; label: string }[],
@@ -68,10 +69,10 @@ export function NavigationSettings({
 }) {
   const [hidden, setHidden] = useState<string[]>(initialHidden);
   const [menu, setMenu] = useState<ReorderItem[]>(
-    toItems(MENU_SECTIONS, initialMenuOrder),
+    toItems(ORDERABLE, initialMenuOrder),
   );
   const [bar, setBar] = useState<ReorderItem[]>(
-    toItems(NAV_SECTIONS, initialTopbarOrder),
+    toItems(ORDERABLE, initialTopbarOrder),
   );
   const [, start] = useTransition();
 
@@ -161,7 +162,7 @@ export function NavigationSettings({
           <p className="text-xs leading-relaxed text-zinc-500">
             Ordered separately from the full menu, with its own dividers. Switch
             a section off to keep it out of the horizontal bar — it stays in the
-            hamburger menu.
+            hamburger menu. Settings is always a gear at the far right.
           </p>
         </div>
         <ReorderList
