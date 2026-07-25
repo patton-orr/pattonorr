@@ -28,7 +28,7 @@ function toItems(
     order,
   ).map((slot) =>
     slot.type === "divider"
-      ? { key: slot.key, label: "Divider" }
+      ? { key: slot.key, label: "Divider", variant: "divider" as const }
       : { key: slot.entry.key, label: slot.entry.label },
   );
 }
@@ -98,7 +98,10 @@ export function NavigationSettings({
     setItems: (v: ReorderItem[]) => void,
     save: (keys: string[]) => Promise<void>,
   ) {
-    const next = [...items, { key: newDividerKey(), label: "Divider" }];
+    const next: ReorderItem[] = [
+      ...items,
+      { key: newDividerKey(), label: "Divider", variant: "divider" },
+    ];
     setItems(next);
     start(() => {
       void save(next.map((i) => i.key));

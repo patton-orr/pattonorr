@@ -9,7 +9,12 @@ import { useRef, useState } from "react";
 // Row positions are measured from the DOM on drag start, so rows don't have to
 // be a uniform height.
 
-export type ReorderItem = { key: string; label: string };
+export type ReorderItem = {
+  key: string;
+  label: string;
+  /** Dividers render as a rule rather than a labelled row. */
+  variant?: "divider";
+};
 
 function move<T>(arr: T[], from: number, to: number): T[] {
   const next = [...arr];
@@ -97,9 +102,11 @@ export function ReorderList({
       {items.map((it, i) => (
         <li
           key={it.key}
-          className={`flex items-center gap-3 bg-white px-3 py-2.5 transition-shadow dark:bg-black ${
-            dragKey === it.key ? "relative z-10 shadow-md" : ""
-          }`}
+          className={`flex items-center gap-3 px-3 transition-shadow ${
+            it.variant === "divider"
+              ? "bg-black/[.03] py-1.5 dark:bg-white/[.04]"
+              : "bg-white py-2.5 dark:bg-black"
+          } ${dragKey === it.key ? "relative z-10 shadow-md" : ""}`}
         >
           <button
             type="button"
@@ -120,9 +127,20 @@ export function ReorderList({
               <circle cx="15" cy="18" r="1.6" />
             </svg>
           </button>
-          <span className="min-w-0 flex-1 truncate text-sm font-medium text-black dark:text-zinc-50">
-            {it.label}
-          </span>
+          {it.variant === "divider" ? (
+            // Looks like what it produces: a rule with a small caption.
+            <span className="flex min-w-0 flex-1 items-center gap-2" aria-label="Divider">
+              <span className="h-px flex-1 bg-black/20 dark:bg-white/25" />
+              <span className="shrink-0 text-[10px] font-semibold tracking-[0.14em] text-zinc-400 uppercase">
+                Divider
+              </span>
+              <span className="h-px flex-1 bg-black/20 dark:bg-white/25" />
+            </span>
+          ) : (
+            <span className="min-w-0 flex-1 truncate text-sm font-medium text-black dark:text-zinc-50">
+              {it.label}
+            </span>
+          )}
           {renderRight?.(it.key)}
         </li>
       ))}
