@@ -12,6 +12,9 @@ export const SECTIONS = [
   { key: "home", label: "Home" },
   { key: "health", label: "Health" },
   { key: "faith", label: "Faith" },
+  { key: "school", label: "School" },
+  { key: "work", label: "Work" },
+  { key: "personal", label: "Personal" },
   { key: "notes", label: "Notes" },
   { key: "ideas", label: "Ideas" },
 ] as const;
@@ -46,6 +49,9 @@ export function sectionForPath(
   if (is("/dashboard/health") || is("/dashboard/whoop")) return "health";
   if (is("/dashboard/faith") || is("/dashboard/bible") || is("/bible"))
     return "faith";
+  if (is("/dashboard/school")) return "school";
+  if (is("/dashboard/work")) return "work";
+  if (is("/dashboard/personal")) return "personal";
   if (is("/dashboard/notes")) return "notes";
   if (is("/dashboard/ideas")) return "ideas";
   if (is("/dashboard/settings")) return "settings";
