@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { applyNavOrder } from "@/lib/access-config";
+import { buildNavSlots } from "@/lib/access-config";
 import { signOutAction } from "./actions";
 
 // FT-style navigation: a sticky top bar of the top-level sections, a sub-nav row
@@ -119,14 +119,14 @@ export function DashboardNav({
     (e) => e.section === "settings" || sections.includes(e.section),
   );
   // Settings drops to the bottom of the drawer, apart from the rest.
-  const mainEntries = applyNavOrder(
+  const mainSlots = buildNavSlots(
     visible.filter((e) => e.section !== "settings"),
     menuOrder,
   );
   const settingsEntry = visible.find((e) => e.section === "settings");
   // The horizontal top bar can hide sections (they stay in the drawer), and is
   // ordered independently of the drawer.
-  const barVisible = applyNavOrder(
+  const barSlots = buildNavSlots(
     visible.filter((e) => !barHidden.includes(e.section)),
     topbarOrder,
   );
@@ -185,7 +185,17 @@ export function DashboardNav({
           {/* Right column: top-level row + sub-nav, both left-aligned together */}
           <div className="flex min-w-0 flex-1 flex-col">
             <nav className="flex items-center gap-2 overflow-x-auto py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {barVisible.map((e) => {
+              {barSlots.map((slot) => {
+                if (slot.type === "divider") {
+                  return (
+                    <span
+                      key={slot.key}
+                      aria-hidden
+                      className="mx-1 h-5 w-px shrink-0 bg-black/10 dark:bg-white/15"
+                    />
+                  );
+                }
+                const e = slot.entry;
                 const on = top?.label === e.label;
                 return (
                   <Link
@@ -276,8 +286,17 @@ export function DashboardNav({
             Top sections
           </div>
           <nav className="flex flex-col gap-0.5">
-            {mainEntries.map((entry) =>
-              isGroup(entry) ? (
+            {mainSlots.map((slot) => {
+              if (slot.type === "divider") {
+                return (
+                  <hr
+                    key={slot.key}
+                    className="my-1.5 border-t border-black/[.08] dark:border-white/[.12]"
+                  />
+                );
+              }
+              const entry = slot.entry;
+              return isGroup(entry) ? (
                 <div key={entry.label} className="flex flex-col">
                   <div className="flex items-center gap-0.5">
                     <Link
@@ -336,8 +355,8 @@ export function DashboardNav({
                 >
                   {entry.label}
                 </Link>
-              ),
-            )}
+              );
+            })}
           </nav>
           <div className="mt-auto flex flex-col gap-2">
             {settingsEntry && (

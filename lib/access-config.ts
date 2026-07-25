@@ -39,21 +39,70 @@ export function isAdmin(email?: string | null): boolean {
   return !!email && email.trim().toLowerCase() === ADMIN_EMAIL;
 }
 
-// Sort nav entries by a stored order of section keys. Anything not in the
-// stored order (a section added after the order was saved) keeps its default
-// relative position at the end, so new sections never disappear and the stored
-// order never needs migrating.
-export function applyNavOrder<T extends { section: string }>(
+// --- Nav ordering + dividers ---
+//
+// A nav order is a flat array of keys: section keys plus divider tokens
+// ("divider:<id>"), so a separator is just another draggable position in the
+// order. Sections missing from a saved order keep their default relative
+// position at the end, so adding a section later needs no migration.
+
+export const DIVIDER_PREFIX = "divider:";
+export const isDividerKey = (key: string) => key.startsWith(DIVIDER_PREFIX);
+export const newDividerKey = () =>
+  `${DIVIDER_PREFIX}${Math.random().toString(36).slice(2, 8)}`;
+
+export type NavSlot<T> =
+  | { type: "entry"; key: string; entry: T }
+  | { type: "divider"; key: string };
+
+// Expand a stored order into slots, keeping every divider exactly where it sits.
+// The settings editor uses this so a divider dragged to the end stays visible
+// and draggable; the nav itself uses buildNavSlots, which tidies up first.
+export function expandNavOrder<T extends { section: string }>(
   entries: T[],
   order: string[] | undefined,
-): T[] {
-  if (!order?.length) return entries;
-  const rank = new Map(order.map((k, i) => [k, i]));
-  return [...entries].sort(
-    (a, b) =>
-      (rank.get(a.section) ?? Number.MAX_SAFE_INTEGER) -
-      (rank.get(b.section) ?? Number.MAX_SAFE_INTEGER),
-  );
+): NavSlot<T>[] {
+  const bySection = new Map(entries.map((e) => [e.section, e]));
+  const slots: NavSlot<T>[] = [];
+  const used = new Set<string>();
+
+  for (const key of order ?? []) {
+    if (isDividerKey(key)) {
+      slots.push({ type: "divider", key });
+      continue;
+    }
+    const entry = bySection.get(key);
+    if (entry && !used.has(key)) {
+      used.add(key);
+      slots.push({ type: "entry", key, entry });
+    }
+  }
+  // Anything the saved order didn't mention, in default order.
+  for (const e of entries) {
+    if (!used.has(e.section)) {
+      slots.push({ type: "entry", key: e.section, entry: e });
+    }
+  }
+
+  return slots;
+}
+
+// What the nav actually renders. Dividers that would land at the very start or
+// end, or back to back — because the sections between them are hidden or not
+// granted to this user — are dropped, so nobody sees a stray line with nothing
+// around it.
+export function buildNavSlots<T extends { section: string }>(
+  entries: T[],
+  order: string[] | undefined,
+): NavSlot<T>[] {
+  const slots = expandNavOrder(entries, order);
+  return slots.filter((slot, i, all) => {
+    if (slot.type !== "divider") return true;
+    const hasBefore = all.slice(0, i).some((s) => s.type === "entry");
+    const hasAfter = all.slice(i + 1).some((s) => s.type === "entry");
+    if (!hasBefore || !hasAfter) return false; // leading / trailing
+    return all[i + 1]?.type !== "divider"; // collapse consecutive runs
+  });
 }
 
 // Map a pathname to its owning top-level section (for gating + highlighting).
