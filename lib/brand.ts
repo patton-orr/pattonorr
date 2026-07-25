@@ -14,9 +14,16 @@ export type IconVariant = "black" | "red";
 export const iconVariant: IconVariant =
   process.env.VERCEL_ENV === "production" ? "black" : "red";
 
+// Browsers (Safari especially) cache favicons far more stubbornly than normal
+// assets and will happily serve a stale one for weeks. Bump this whenever the
+// artwork changes to force a re-fetch everywhere.
+const ICON_VERSION = "2";
+
+const url = (file: string) => `/icons/${file}?v=${ICON_VERSION}`;
+
 export const icons = {
-  small: `/icons/icon-${iconVariant}-32.png`,
-  medium: `/icons/icon-${iconVariant}-192.png`,
-  large: `/icons/icon-${iconVariant}-512.png`,
-  apple: `/icons/apple-icon-${iconVariant}.png`,
+  small: url(`icon-${iconVariant}-32.png`),
+  medium: url(`icon-${iconVariant}-192.png`),
+  large: url(`icon-${iconVariant}-512.png`),
+  apple: url(`apple-icon-${iconVariant}.png`),
 } as const;
