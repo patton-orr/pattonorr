@@ -326,7 +326,9 @@ export function DashboardNav({
                 return (
                   <hr
                     key={slot.key}
-                    className="my-1.5 border-t border-black/[.08] dark:border-white/[.12]"
+                    // Generous margin so the rule reads as a group break, not
+                    // just a line between two adjacent items.
+                    className="my-3 border-t border-black/[.08] dark:border-white/[.12]"
                   />
                 );
               }
