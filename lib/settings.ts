@@ -125,6 +125,29 @@ export async function setNavTopbarHidden(hidden: string[]) {
   await setSetting(NAV_TOPBAR_HIDDEN_KEY, [...new Set(hidden.map(String))]);
 }
 
+// Section-key order for the two navs, kept independent: the full hamburger menu
+// and the horizontal top bar. Empty/missing = default (source) order. Keys not
+// present are appended in default order by applyNavOrder, so adding a section
+// later needs no migration.
+export const NAV_MENU_ORDER_KEY = "nav.menuOrder";
+export const NAV_TOPBAR_ORDER_KEY = "nav.topbarOrder";
+
+async function getOrder(key: string): Promise<string[]> {
+  const v = await getSetting<string[]>(key, []);
+  return Array.isArray(v) ? [...new Set(v.map(String))] : [];
+}
+
+export const getNavMenuOrder = () => getOrder(NAV_MENU_ORDER_KEY);
+export const getNavTopbarOrder = () => getOrder(NAV_TOPBAR_ORDER_KEY);
+
+export async function setNavMenuOrder(order: string[]) {
+  await setSetting(NAV_MENU_ORDER_KEY, [...new Set(order.map(String))]);
+}
+
+export async function setNavTopbarOrder(order: string[]) {
+  await setSetting(NAV_TOPBAR_ORDER_KEY, [...new Set(order.map(String))]);
+}
+
 // --- Home preferences ---
 
 export const HOME_SHOW_WEATHER_KEY = "home.showWeather";

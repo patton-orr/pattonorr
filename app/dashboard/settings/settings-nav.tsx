@@ -21,7 +21,7 @@ export function SettingsNav({
     ...(isAdmin
       ? [
           { label: "Health", href: "/dashboard/settings/health" },
-          { label: "Top bar", href: "/dashboard/settings/navigation" },
+          { label: "Navigation", href: "/dashboard/settings/navigation" },
           { label: "Access", href: "/dashboard/settings/access" },
         ]
       : []),

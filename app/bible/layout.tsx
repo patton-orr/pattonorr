@@ -3,7 +3,12 @@ import { auth } from "@/auth";
 import { allowedSections } from "@/lib/access";
 import { isAdmin } from "@/lib/access-config";
 import { currentUserId } from "@/lib/current-user";
-import { getNavTopbarHidden, getUserTheme } from "@/lib/settings";
+import {
+  getNavMenuOrder,
+  getNavTopbarHidden,
+  getNavTopbarOrder,
+  getUserTheme,
+} from "@/lib/settings";
 import { DashboardNav } from "@/app/dashboard/nav";
 
 // The Bible section (reader + landing) now renders like any other page: under
@@ -16,9 +21,11 @@ export default async function BibleLayout({
 }) {
   const session = await auth();
   const email = session?.user?.email ?? undefined;
-  const [sections, barHidden, theme] = await Promise.all([
+  const [sections, barHidden, menuOrder, topbarOrder, theme] = await Promise.all([
     allowedSections(email),
     getNavTopbarHidden(),
+    getNavMenuOrder(),
+    getNavTopbarOrder(),
     getUserTheme(await currentUserId()),
   ]);
   const admin = isAdmin(email);
@@ -32,7 +39,13 @@ export default async function BibleLayout({
       data-accent={theme}
       className="flex min-h-full flex-1 flex-col font-sans"
     >
-      <DashboardNav email={email} sections={sections} barHidden={barHidden} />
+      <DashboardNav
+        email={email}
+        sections={sections}
+        barHidden={barHidden}
+        menuOrder={menuOrder}
+        topbarOrder={topbarOrder}
+      />
       <main
         className="faith-theme min-w-0 flex-1 px-5 py-6 sm:px-8 sm:py-8"
         style={{ background: "var(--reader-bg)", color: "var(--reader-fg)" }}

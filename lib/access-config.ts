@@ -39,6 +39,23 @@ export function isAdmin(email?: string | null): boolean {
   return !!email && email.trim().toLowerCase() === ADMIN_EMAIL;
 }
 
+// Sort nav entries by a stored order of section keys. Anything not in the
+// stored order (a section added after the order was saved) keeps its default
+// relative position at the end, so new sections never disappear and the stored
+// order never needs migrating.
+export function applyNavOrder<T extends { section: string }>(
+  entries: T[],
+  order: string[] | undefined,
+): T[] {
+  if (!order?.length) return entries;
+  const rank = new Map(order.map((k, i) => [k, i]));
+  return [...entries].sort(
+    (a, b) =>
+      (rank.get(a.section) ?? Number.MAX_SAFE_INTEGER) -
+      (rank.get(b.section) ?? Number.MAX_SAFE_INTEGER),
+  );
+}
+
 // Map a pathname to its owning top-level section (for gating + highlighting).
 // Health owns /dashboard/whoop; Faith owns /dashboard/bible + the /bible reader.
 export function sectionForPath(

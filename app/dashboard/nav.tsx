@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { applyNavOrder } from "@/lib/access-config";
 import { signOutAction } from "./actions";
 
 // FT-style navigation: a sticky top bar of the top-level sections, a sub-nav row
@@ -93,10 +94,15 @@ export function DashboardNav({
   email,
   sections,
   barHidden = [],
+  menuOrder = [],
+  topbarOrder = [],
 }: {
   email?: string;
   sections: string[];
   barHidden?: string[];
+  /** Section-key order for the drawer and the top bar, configured independently. */
+  menuOrder?: string[];
+  topbarOrder?: string[];
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -113,10 +119,17 @@ export function DashboardNav({
     (e) => e.section === "settings" || sections.includes(e.section),
   );
   // Settings drops to the bottom of the drawer, apart from the rest.
-  const mainEntries = visible.filter((e) => e.section !== "settings");
+  const mainEntries = applyNavOrder(
+    visible.filter((e) => e.section !== "settings"),
+    menuOrder,
+  );
   const settingsEntry = visible.find((e) => e.section === "settings");
-  // The horizontal top bar can hide sections (they stay in the drawer).
-  const barVisible = visible.filter((e) => !barHidden.includes(e.section));
+  // The horizontal top bar can hide sections (they stay in the drawer), and is
+  // ordered independently of the drawer.
+  const barVisible = applyNavOrder(
+    visible.filter((e) => !barHidden.includes(e.section)),
+    topbarOrder,
+  );
   const active = activeHref(pathname, visible);
   const top = activeTop(pathname, visible);
   const subItems = top && isGroup(top) ? top.items : [];
@@ -190,9 +203,19 @@ export function DashboardNav({
                 );
               })}
             </nav>
-            {subItems.length > 0 && (
-              <div className="flex items-center gap-5 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {subItems.map((it) => {
+            {/* Always rendered, even with no children, so the header keeps a
+                constant height and the page doesn't shift when moving between
+                a section that has a sub-nav and one that doesn't. */}
+            <div className="flex items-center gap-5 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {subItems.length === 0 ? (
+                <span
+                  aria-hidden
+                  className="invisible shrink-0 border-b-2 border-transparent px-0.5 pb-1 text-[13px] whitespace-nowrap"
+                >
+                  &nbsp;
+                </span>
+              ) : (
+                subItems.map((it) => {
                   const on = active === it.href;
                   return (
                     <Link
@@ -208,9 +231,9 @@ export function DashboardNav({
                       {it.label}
                     </Link>
                   );
-                })}
-              </div>
-            )}
+                })
+              )}
+            </div>
           </div>
         </div>
       </header>
