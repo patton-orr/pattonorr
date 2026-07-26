@@ -40,6 +40,14 @@ const ideas: Idea[] = [
     complexity: "High",
     timeLift: "~1–2 hrs for POC + PRD alone; ~1–2 days for SUP/PJX with a branchable database and scheduled sync (gated on adding a database first).",
   },
+  {
+    title: "YouTube viewer (my own account)",
+    description:
+      "Surface my own YouTube account in the dashboard — playlists and a subscriptions feed — with videos playing inline via the IFrame player, tagged to a life area and annotatable like scripture notes. Needs OAuth with added YouTube scopes on the existing Google sign-in, a Google Cloud project + API key, and token storage. Three things shape the build: (1) Watch Later is NOT retrievable — the API has returned an empty list for it since 2016, so it can't be mirrored; (2) search.list costs 100 quota units against 10,000/day (~100 searches/day), so search can't drive browsing — lean on playlistItems.list and videos.list at 1 unit each, cached in Postgres; (3) the free oEmbed endpoint gives title/channel/thumbnail with no API key at all, so a save-by-URL library is a zero-quota fallback if the OAuth path stalls. Adding sensitive scopes may trigger Google verification — a real risk given the app's publishing-status history. Playback details: youtube-nocookie host, playsinline=1, and no autoplay on iOS.",
+    complexity: "High",
+    timeLift:
+      "~half a day for a save-by-URL library with inline playback and notes (no key, no OAuth); ~1 day more for API-key enrichment and following channels/playlists; ~2+ days for the full own-account version, plus unbounded time if Google verification is required.",
+  },
 ];
 
 const complexityStyles: Record<Complexity, string> = {
