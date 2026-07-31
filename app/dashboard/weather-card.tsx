@@ -38,7 +38,10 @@ export async function WeatherCard() {
         </span>
       </div>
       <div className="mt-4 grid grid-cols-3 gap-2 border-t border-black/[.06] pt-3 dark:border-white/[.1]">
-        <Detail label="Hi / Lo" value={`${w.hiF}° / ${w.loF}°`} />
+        <Detail
+          label="Hi / Lo"
+          value={`${w.hiF ?? "—"}° / ${w.loF ?? "—"}°`}
+        />
         <Detail label="Humidity" value={`${w.humidity}%`} />
         <Detail label="Wind" value={`${w.windMph} mph`} />
       </div>

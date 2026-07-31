@@ -112,7 +112,11 @@ export function sectionForPath(
 ): SectionKey | "settings" | null {
   const is = (h: string) => pathname === h || pathname.startsWith(h + "/");
   if (pathname === "/dashboard") return "home";
-  if (is("/dashboard/health") || is("/dashboard/whoop")) return "health";
+  // Health owns every /dashboard/whoop* route, including /dashboard/whoop-revised
+  // (the primary page) — whose "-revised" suffix means it is NOT a "/dashboard/whoop/"
+  // subpath, so match the bare prefix rather than requiring a trailing slash.
+  if (is("/dashboard/health") || pathname.startsWith("/dashboard/whoop"))
+    return "health";
   if (is("/dashboard/faith") || is("/dashboard/bible") || is("/bible"))
     return "faith";
   if (is("/dashboard/school")) return "school";

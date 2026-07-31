@@ -1,4 +1,7 @@
-export default function School() {
+import { requireSection } from "@/lib/require-access";
+
+export default async function School() {
+  await requireSection("school");
   return (
     <div className="flex max-w-2xl flex-col gap-2">
       <h1 className="text-2xl font-semibold tracking-tight text-black dark:text-zinc-50">

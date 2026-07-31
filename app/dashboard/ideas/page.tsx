@@ -8,6 +8,8 @@
 //                significant unknowns.
 //   timeLift   — rough focused-work estimate to a working version.
 
+import { requireSection } from "@/lib/require-access";
+
 type Complexity = "Low" | "Medium" | "High";
 
 type Idea = {
@@ -56,7 +58,8 @@ const complexityStyles: Record<Complexity, string> = {
   High: "bg-rose-500/10 text-rose-700 dark:text-rose-400",
 };
 
-export default function Ideas() {
+export default async function Ideas() {
+  await requireSection("ideas");
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">

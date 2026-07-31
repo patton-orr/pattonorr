@@ -26,6 +26,7 @@ import { RangeSlider } from "../range-slider";
 import { REC_ZONES } from "../zones-config";
 import { getWhoopSmoothing } from "@/lib/settings";
 import { downsampleSeries } from "@/lib/downsample";
+import { requireSection } from "@/lib/require-access";
 
 export const dynamic = "force-dynamic";
 
@@ -134,6 +135,7 @@ export default async function MetricDetail({
   params: Promise<{ metric: string }>;
   searchParams: Promise<{ range?: string; avg?: string }>;
 }) {
+  await requireSection("health");
   const { metric } = await params;
   const sp = await searchParams;
   if (!METRICS.includes(metric as Metric)) notFound();

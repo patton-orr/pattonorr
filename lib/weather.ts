@@ -12,9 +12,15 @@ export type Weather = {
   windMph: number;
   code: number;
   isDay: boolean;
-  hiF: number;
-  loF: number;
+  hiF: number | null;
+  loF: number | null;
 };
+
+// Round to a whole number, or null when the value is missing/non-finite (the
+// daily hi/lo arrays can come back empty — Math.round(undefined) is NaN, which
+// would otherwise render as "NaN°").
+const roundOrNull = (v: unknown): number | null =>
+  Number.isFinite(Number(v)) ? Math.round(Number(v)) : null;
 
 const FALLBACK = { lat: "40.7128", lon: "-74.006", city: "New York" };
 
@@ -47,8 +53,8 @@ export async function getWeather(): Promise<Weather | null> {
       windMph: Math.round(c.wind_speed_10m),
       code: c.weather_code,
       isDay: c.is_day === 1,
-      hiF: Math.round(day.temperature_2m_max?.[0]),
-      loF: Math.round(day.temperature_2m_min?.[0]),
+      hiF: roundOrNull(day.temperature_2m_max?.[0]),
+      loF: roundOrNull(day.temperature_2m_min?.[0]),
     };
   } catch {
     return null;

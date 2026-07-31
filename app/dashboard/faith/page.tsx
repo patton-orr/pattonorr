@@ -1,9 +1,11 @@
+import { requireSection } from "@/lib/require-access";
 import { AreaCard } from "../area-card";
 import { VerseOfTheDay } from "../verse-of-the-day";
 
 export const dynamic = "force-dynamic";
 
-export default function Faith() {
+export default async function Faith() {
+  await requireSection("faith");
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <div className="flex flex-col gap-2">

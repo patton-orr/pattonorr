@@ -1,21 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth } from "@/auth";
-import { isAdmin, type SectionKey } from "@/lib/access-config";
+import { type SectionKey } from "@/lib/access-config";
 import {
   getAllowlist,
   setAllowlist,
   setGuestSections,
   removeGuest,
 } from "@/lib/access";
+import { requireAdmin } from "@/lib/require-access";
 
 // Every action re-checks admin server-side — the UI is only shown to the admin,
 // but these are POST endpoints of their own.
-async function requireAdmin() {
-  const session = await auth();
-  if (!isAdmin(session?.user?.email)) throw new Error("Forbidden");
-}
 
 export async function addGuestAction(email: string) {
   await requireAdmin();

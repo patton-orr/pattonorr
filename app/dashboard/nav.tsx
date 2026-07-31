@@ -146,8 +146,15 @@ export function DashboardNav({
     ),
     topbarOrder,
   );
-  const active = activeHref(pathname, visible);
-  const top = activeTop(pathname, visible);
+  // The "WHOOP Data" detail pages (/dashboard/whoop and /dashboard/whoop/<metric>)
+  // aren't their own nav entries — they hang off the WHOOP leaf. Treat them as
+  // that leaf so the Health pill and sub-nav stay lit while viewing them.
+  const matchPath =
+    pathname === "/dashboard/whoop" || pathname.startsWith("/dashboard/whoop/")
+      ? "/dashboard/whoop-revised"
+      : pathname;
+  const active = activeHref(matchPath, visible);
+  const top = activeTop(matchPath, visible);
   const subItems = top && isGroup(top) ? top.items : [];
 
   const toggleGroup = (label: string) =>

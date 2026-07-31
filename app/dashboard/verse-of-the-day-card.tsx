@@ -46,6 +46,16 @@ export function VerseOfTheDayCard({ initial }: { initial: Verse }) {
     verseRef.current = verse;
   }, [verse]);
 
+  // Track the "Saved" toast timer so it's cleared on unmount (avoids a
+  // setState on an unmounted component if the user navigates away mid-toast).
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (savedTimer.current) clearTimeout(savedTimer.current);
+    },
+    [],
+  );
+
   function refresh() {
     startTransition(async () => {
       const next = await randomVerseAction(verseRef.current.ref);
@@ -63,7 +73,8 @@ export function VerseOfTheDayCard({ initial }: { initial: Verse }) {
     setNoteText("");
     setNoteOpen(false);
     setSaved(true);
-    setTimeout(() => setSaved(false), 2200);
+    if (savedTimer.current) clearTimeout(savedTimer.current);
+    savedTimer.current = setTimeout(() => setSaved(false), 2200);
   }
 
   // Advance to a fresh verse every 5 minutes while the card is on screen.

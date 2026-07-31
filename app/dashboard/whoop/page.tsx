@@ -22,6 +22,7 @@ import { RangeSlider } from "./range-slider";
 import { REC_ZONES } from "./zones-config";
 import { getWhoopSmoothing } from "@/lib/settings";
 import { downsampleSeries } from "@/lib/downsample";
+import { requireSection } from "@/lib/require-access";
 
 export const dynamic = "force-dynamic";
 // Governs the syncNow server action too; incremental syncs are quick, and the
@@ -88,6 +89,7 @@ export default async function Whoop({
 }: {
   searchParams: Promise<{ error?: string; range?: string; avg?: string }>;
 }) {
+  await requireSection("health");
   const sp = await searchParams;
   const error = sp.error;
   const range = parseRange(sp.range);

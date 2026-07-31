@@ -50,7 +50,7 @@ Note: Google OAuth publishing status matters. While the OAuth app is in "Testing
 - Sections: `home` (always granted), `health`, `faith`, `notes`, `ideas`. **`home` and `health` are NOT grantable** — Health surfaces the owner's private WHOOP data.
 - **Settings is open to every signed-in user** (personal prefs). Its admin-only panes — Health, Top bar, Access — redirect non-admins themselves.
 - `lib/access-config.ts` is the client-safe half (constants, `isAdmin`, `sectionForPath`); `lib/access.ts` is server-only (touches the DB). Client components must import from `access-config`.
-- Enforcement today is nav filtering + a "No access" panel in `content-area.tsx`. **Server-side hard route enforcement is still a TODO.**
+- Enforcement layers: nav filtering + a "No access" panel in `content-area.tsx` (cosmetic — the client panel still receives the RSC payload), **plus** a server-side hard gate. Call `requireSection(section)` from `lib/require-access.ts` at the top of every gated page's server component (and `requireAdmin()` in privileged actions / route handlers); it `redirect()`s a denied user before their content renders. The `/bible` reader enforces the same in its layout. When you add a new gated page, wire up `requireSection` — the client panel is belt-and-suspenders, not the boundary.
 
 ## Per-user data isolation
 

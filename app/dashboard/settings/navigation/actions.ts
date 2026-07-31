@@ -1,18 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth } from "@/auth";
-import { isAdmin } from "@/lib/access-config";
 import {
   setNavMenuOrder,
   setNavTopbarHidden,
   setNavTopbarOrder,
 } from "@/lib/settings";
-
-async function requireAdmin() {
-  const session = await auth();
-  if (!isAdmin(session?.user?.email)) throw new Error("Forbidden");
-}
+import { requireAdmin } from "@/lib/require-access";
 
 // Refresh every dashboard route so the nav updates immediately. The Bible
 // reader renders the same nav from its own layout, so refresh that too.

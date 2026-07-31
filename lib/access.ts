@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { getSetting, setSetting } from "@/lib/settings";
 import {
   ADMIN_EMAIL,
@@ -59,7 +60,9 @@ export async function isAllowed(email?: string | null): Promise<boolean> {
 }
 
 // Which sections a user may see. Admin = all; guest = home + whatever's granted.
-export async function allowedSections(
+// Wrapped in React `cache` so the layout and per-page server guard share one DB
+// read within a single request instead of each hitting Postgres.
+export const allowedSections = cache(async function allowedSections(
   email?: string | null,
 ): Promise<SectionKey[]> {
   if (isAdmin(email)) return SECTIONS.map((s) => s.key);
@@ -71,4 +74,4 @@ export async function allowedSections(
     grantable.has(s),
   );
   return [...new Set<SectionKey>(["home", ...granted])];
-}
+});

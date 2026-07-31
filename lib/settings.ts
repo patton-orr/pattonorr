@@ -50,14 +50,20 @@ export async function setUserSetting(
 }
 
 // All settings whose key starts with `prefix` (e.g. per-chapter note rows like
-// `bible.notes:<ref>`). Prefix must not contain LIKE wildcards.
+// `bible.notes:<ref>`). The prefix embeds the user's email (e.g.
+// `u:<email>:bible.notes:`), and emails can legitimately contain `_`, which is a
+// single-char LIKE wildcard — so we escape `\ % _` and match with ESCAPE. Without
+// this, a user `a_b@x.com` would also match `aXb@x.com`'s rows, leaking another
+// user's private notes/highlights (the isolation model treats these as private).
 export async function getSettingsByPrefix<T>(
   prefix: string,
 ): Promise<{ key: string; value: T }[]> {
   const sql = getSql();
+  const escaped = prefix.replace(/[\\%_]/g, (c) => `\\${c}`);
   try {
     const rows = await sql`
-      SELECT key, value FROM app_settings WHERE key LIKE ${prefix + "%"}`;
+      SELECT key, value FROM app_settings
+      WHERE key LIKE ${escaped + "%"} ESCAPE '\\'`;
     return rows.map((r) => ({ key: r.key as string, value: r.value as T }));
   } catch {
     return [];

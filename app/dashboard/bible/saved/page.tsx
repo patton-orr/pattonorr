@@ -5,6 +5,7 @@ import { readerHref } from "@/lib/bible-books";
 import { fmtDate } from "@/lib/format";
 import { removeBookmarkAction } from "../actions";
 import { removeQuickNoteAction } from "../../faith/actions";
+import { requireSection } from "@/lib/require-access";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,7 @@ function Empty({ children }: { children: React.ReactNode }) {
 }
 
 export default async function SavedPassages() {
+  await requireSection("faith");
   const [bookmarks, highlights, notes] = await Promise.all([
     getBookmarks(),
     getAllHighlights(),

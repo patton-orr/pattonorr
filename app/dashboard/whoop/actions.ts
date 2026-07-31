@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { runSync } from "@/lib/whoop-sync";
+import { requireAdmin } from "@/lib/require-access";
 
 // Result of a manual "Sync now". Returned (never thrown) so a failure surfaces
 // inline instead of crashing the page as an unhandled server-action error.
@@ -16,6 +17,9 @@ export type SyncState = {
 // useActionState calls it with (prevState, formData), both of which are ignored.
 export async function syncNow(): Promise<SyncState> {
   try {
+    // WHOOP is the owner's private, single-user integration. Only the admin may
+    // trigger a sync (which also spends a rotating refresh token).
+    await requireAdmin();
     const r = await runSync();
     revalidatePath("/dashboard/whoop");
     revalidatePath("/dashboard/whoop-revised");

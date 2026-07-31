@@ -342,6 +342,14 @@ export function ReaderContent({
     if (reflTimer.current) clearTimeout(reflTimer.current);
     if (!reflSaved) saveReflection(reflection);
   }
+  // Clear the pending autosave timer on unmount so it can't fire setState on an
+  // unmounted component (e.g. client-navigating away within the 800ms debounce).
+  useEffect(
+    () => () => {
+      if (reflTimer.current) clearTimeout(reflTimer.current);
+    },
+    [],
+  );
 
   // Track whether there's room for the margin comment rail.
   useEffect(() => {

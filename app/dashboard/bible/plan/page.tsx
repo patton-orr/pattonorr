@@ -2,12 +2,14 @@ import Link from "next/link";
 import { PLANS, getPlan, getPlanState } from "@/lib/bible";
 import { readerHref } from "@/lib/bible-books";
 import { setActivePlanAction, togglePlanDayAction } from "../actions";
+import { requireSection } from "@/lib/require-access";
 
 export const dynamic = "force-dynamic";
 
 const readHref = (ref: string) => readerHref(ref);
 
 export default async function ReadingPlan() {
+  await requireSection("faith");
   const state = await getPlanState();
   const plan = getPlan(state.active);
 

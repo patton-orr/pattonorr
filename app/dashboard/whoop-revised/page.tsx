@@ -7,6 +7,7 @@ import {
   type RecoveryPoint,
   type StrainPoint,
 } from "@/lib/whoop-queries";
+import { requireSection } from "@/lib/require-access";
 import { SyncButton } from "@/app/dashboard/whoop/sync-button";
 import {
   OverviewRings,
@@ -35,6 +36,7 @@ function buildWeek(rec: RecoveryPoint[], strain: StrainPoint[]): Day[] {
 }
 
 export default async function WhoopRevised() {
+  await requireSection("health");
   const status = await getStatus();
 
   if (!status.hasData) {

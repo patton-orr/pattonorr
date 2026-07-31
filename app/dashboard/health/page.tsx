@@ -1,6 +1,8 @@
+import { requireSection } from "@/lib/require-access";
 import { AreaCard } from "../area-card";
 
-export default function Health() {
+export default async function Health() {
+  await requireSection("health");
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <div className="flex flex-col gap-2">
