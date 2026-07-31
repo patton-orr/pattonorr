@@ -6,7 +6,9 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Patton Orr",
     short_name: "Patton Orr",
     description: "Personal site of Patton Orr.",
-    start_url: "/",
+    // Launch the installed app at the dashboard — the owner's destination.
+    // A signed-out visitor is still routed to sign-in by the proxy.
+    start_url: "/dashboard",
     display: "standalone",
     background_color: "#0a0a0a",
     theme_color: "#0a0a0a",

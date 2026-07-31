@@ -14,8 +14,23 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Patton Orr",
+  metadataBase: new URL("https://www.pattonorr.com"),
+  title: { default: "Patton Orr", template: "%s · Patton Orr" },
   description: "Personal site of Patton Orr.",
+  openGraph: {
+    title: "Patton Orr",
+    description: "Personal site of Patton Orr.",
+    url: "/",
+    siteName: "Patton Orr",
+    type: "website",
+    images: [{ url: icons.large, width: 512, height: 512, alt: "Patton Orr" }],
+  },
+  twitter: {
+    card: "summary",
+    title: "Patton Orr",
+    description: "Personal site of Patton Orr.",
+    images: [icons.large],
+  },
   // Icons are declared explicitly (rather than via the app/icon.png convention)
   // so the color can follow the environment — see lib/brand.ts.
   icons: {
