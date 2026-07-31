@@ -1,5 +1,6 @@
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { allowedSections } from "@/lib/access";
+import { allowedSections, isAllowed } from "@/lib/access";
 import { isAdmin } from "@/lib/access-config";
 import { currentUserId } from "@/lib/current-user";
 import {
@@ -29,6 +30,11 @@ export default async function DashboardLayout({
     getUserTheme(await currentUserId()),
   ]);
   const admin = isAdmin(email);
+  // Revocation takes effect immediately: sessions are long-lived JWTs, so a
+  // guest removed from the allowlist still holds a valid cookie. Re-check
+  // membership on every dashboard request (this is the one place home + settings
+  // also flow through) and bounce a revoked guest back to the public page.
+  if (email && !admin && !(await isAllowed(email))) redirect("/");
 
   return (
     <div
