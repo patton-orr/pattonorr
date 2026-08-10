@@ -34,7 +34,13 @@ function IconButton({
   );
 }
 
-export function VerseOfTheDayCard({ initial }: { initial: Verse }) {
+export function VerseOfTheDayCard({
+  initial,
+  handwriting = true,
+}: {
+  initial: Verse;
+  handwriting?: boolean;
+}) {
   const [verse, setVerse] = useState(initial);
   const [pending, startTransition] = useTransition();
   const [noteOpen, setNoteOpen] = useState(false);
@@ -91,8 +97,14 @@ export function VerseOfTheDayCard({ initial }: { initial: Verse }) {
   return (
     <div className="faith-theme flex flex-col gap-3 rounded-2xl border border-[color:var(--reader-border)] bg-[var(--reader-surface)] p-6 sm:p-8">
       <div className="flex items-center justify-between gap-2">
-        <span className="font-handwriting text-sm tracking-wide uppercase text-[color:var(--reader-muted)]">
-          Verse of the moment
+        <span
+          className={
+            handwriting
+              ? "font-handwriting text-sm tracking-wide text-[color:var(--reader-muted)]"
+              : "text-xs font-medium tracking-wide uppercase text-[color:var(--reader-muted)]"
+          }
+        >
+          {handwriting ? "Verse of the Moment" : "Verse of the moment"}
         </span>
         <div className="-mr-1 flex items-center gap-0.5">
           {saved && (
@@ -127,7 +139,11 @@ export function VerseOfTheDayCard({ initial }: { initial: Verse }) {
         >
           “{verse.text}”
         </p>
-        <span className="font-handwriting self-end text-base text-[color:var(--reader-muted)] transition-colors group-hover:text-[color:var(--reader-fg)]">
+        <span
+          className={`self-end text-[color:var(--reader-muted)] transition-colors group-hover:text-[color:var(--reader-fg)] ${
+            handwriting ? "font-handwriting text-base" : "text-sm font-medium"
+          }`}
+        >
           {verse.canonical}
         </span>
       </Link>

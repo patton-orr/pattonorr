@@ -92,6 +92,16 @@ export async function getFaithAutoHighlight(
   return getUserSetting<boolean>(userId, FAITH_AUTO_HIGHLIGHT_KEY, false);
 }
 
+export const FAITH_HANDWRITING_KEY = "faith.handwriting";
+
+// Whether the verse card's label and reference render in the handwriting
+// font. On by default. Per-user.
+export async function getFaithHandwriting(
+  userId: string | null,
+): Promise<boolean> {
+  return getUserSetting<boolean>(userId, FAITH_HANDWRITING_KEY, true);
+}
+
 // --- Color theme (per-user accent scheme) ---
 
 export const THEME_KEY = "app.theme";

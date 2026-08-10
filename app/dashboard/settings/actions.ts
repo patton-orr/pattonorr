@@ -8,6 +8,7 @@ import {
   type ThemeId,
   WHOOP_SMOOTHING_KEY,
   FAITH_AUTO_HIGHLIGHT_KEY,
+  FAITH_HANDWRITING_KEY,
   HOME_SHOW_WEATHER_KEY,
 } from "@/lib/settings";
 import { currentUserId } from "@/lib/current-user";
@@ -29,6 +30,16 @@ export async function saveAutoHighlight(on: boolean) {
   );
   // The reader reads this per request; revalidate so it takes effect next load.
   revalidatePath("/bible", "layout");
+}
+
+export async function saveHandwriting(on: boolean) {
+  await setUserSetting(
+    await currentUserId(),
+    FAITH_HANDWRITING_KEY,
+    Boolean(on),
+  );
+  // The verse card renders on the dashboard home and the Faith page.
+  revalidatePath("/dashboard", "layout");
 }
 
 export async function saveShowWeather(on: boolean) {
