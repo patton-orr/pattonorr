@@ -91,7 +91,7 @@ export function VerseOfTheDayCard({ initial }: { initial: Verse }) {
   return (
     <div className="faith-theme flex flex-col gap-3 rounded-2xl border border-[color:var(--reader-border)] bg-[var(--reader-surface)] p-6 sm:p-8">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-medium tracking-wide uppercase text-[color:var(--reader-muted)]">
+        <span className="font-handwriting text-sm tracking-wide uppercase text-[color:var(--reader-muted)]">
           Verse of the moment
         </span>
         <div className="-mr-1 flex items-center gap-0.5">
@@ -127,7 +127,7 @@ export function VerseOfTheDayCard({ initial }: { initial: Verse }) {
         >
           “{verse.text}”
         </p>
-        <span className="self-end text-sm font-medium text-[color:var(--reader-muted)] transition-colors group-hover:text-[color:var(--reader-fg)]">
+        <span className="font-handwriting self-end text-base text-[color:var(--reader-muted)] transition-colors group-hover:text-[color:var(--reader-fg)]">
           {verse.canonical}
         </span>
       </Link>
