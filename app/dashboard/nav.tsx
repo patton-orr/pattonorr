@@ -33,7 +33,23 @@ const NAV: Entry[] = [
       { label: "Saved", href: "/dashboard/bible/saved", section: "faith" },
     ],
   },
-  { label: "School", href: "/dashboard/school", section: "school" },
+  {
+    label: "School",
+    href: "/dashboard/school",
+    section: "school",
+    items: [
+      {
+        label: "Business of Sports",
+        href: "/dashboard/school/business-of-sports",
+        section: "school",
+      },
+      {
+        label: "Entrepreneurial Finance",
+        href: "/dashboard/school/entrepreneurial-finance",
+        section: "school",
+      },
+    ],
+  },
   { label: "Work", href: "/dashboard/work", section: "work" },
   { label: "Personal", href: "/dashboard/personal", section: "personal" },
   { label: "Notes", href: "/dashboard/notes", section: "notes" },
